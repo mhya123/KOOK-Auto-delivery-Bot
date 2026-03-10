@@ -1,0 +1,153 @@
+16:59:15 INFO [kook_bot.bot] starting prefix='!' api_base_url=https://www.kookapp.cn/api/v3 log_level=INFO log_http=False log_events=False log_commands=True log_command_status=True log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+16:59:15 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4UDRnbGQ4MHlYQTcwU2pQdkc1ZXRFUWMzL1VORTZwSFpRdWtBeG1Yblo3ZXg2VnZITWIvVHYvUnc1KzlPcGRCZjV4WUNlemhMMTBBaDdCQ3VCTHVnRlI3MkFJTzFOY0kvcXY2SXF5RjVjYVcvK2dmcXZ1N0ZpQWRKZWtwS3RuUnRnPT0=
+16:59:15 INFO [kook_bot.gateway] connected session_id=bbf62988-4448-44ff-be57-5714c2604771
+16:59:16 INFO [kook_bot.gateway] gateway shutdown requested
+16:59:16 INFO [kook_bot.bot] shutdown requested
+16:59:16 INFO [kook_bot.bot] stopped by user
+16:59:17 INFO [kook_bot.bot] starting prefix='!' api_base_url=https://www.kookapp.cn/api/v3 log_level=INFO log_http=False log_events=False log_commands=True log_command_status=True log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+16:59:18 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4RHRhNDU1ajFHR05pZGZHYkF0ZmVmcVg2eE9qSVoxRnRDZFFKYmxVT0Ewek9xeXN2TnY0VXRLNmpTZVJxelVyUW5rQWFQcEtHK3lPN2k2dUNCZ0pLbEVSN2pLd0RUUndqS0NGdWQ4bHlkaFBOeXRSaEwxbmRDcTdpckRBMVltMkdBPT0=
+16:59:18 INFO [kook_bot.gateway] connected session_id=dc2d9e34-12d3-4d95-83cc-f07073fb229c
+16:59:19 INFO [kook_bot.gateway] gateway shutdown requested
+16:59:19 INFO [kook_bot.bot] shutdown requested
+16:59:19 INFO [kook_bot.bot] stopped by user
+17:08:35 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:08:35 INFO [kook_bot.database] database initialized backend=sqlite path=data/kook-bot.db
+17:08:35 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:08:35 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4TmVnWVFISGg4cS84UndESlRSeE5MQ3BiZ3NMMGtwTDI4QzFOVTJRM29Tc2F1bUdQcU1vcGg4S09YTklCQlAweGtZMjJ6QWlXRElNTnRhZURia0RkMHNNbWR2aTZmSTlHeEVrdmdYR0FXM2xKaDZHaVo3QjBZbjJvek5jODY0aXdBPT0=
+17:08:35 INFO [kook_bot.gateway] connected session_id=daf5e09c-de48-4abc-87b5-71cae9476fdb
+17:11:46 INFO [kook_bot.gateway] gateway shutdown requested
+17:11:46 INFO [kook_bot.bot] shutdown requested
+17:11:46 INFO [kook_bot.bot] stopped by user
+17:11:49 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:11:49 INFO [kook_bot.database] database initialized backend=sqlite
+17:18:38 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:18:38 INFO [kook_bot.database] database initialized backend=sqlite
+17:35:23 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:35:23 INFO [kook_bot.database] database initialized backend=sqlite
+17:35:23 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:35:23 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:35:24 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4T3grU2FiRHMrRm8rN0U4WnhadXVHNU1TMVM3T1JRMFNpeXBZeHJyN2JaT2V2dERHSmlRN2E4WjZnS0pkcDNpUGlYVUs5VlBJRDNWanNieVdOcFpkWVQvQ1RYWmZkMWZkZ1JHNjk2Vjl1S1RrcExQaVJXWEpTR2Z3Y0xvUjE2VmJRPT0=
+17:35:24 INFO [kook_bot.gateway] connected session_id=96c0baa6-1385-4373-818c-47c242d59ff3
+17:45:33 INFO [kook_bot.gateway] gateway shutdown requested
+17:45:33 INFO [kook_bot.bot] shutdown requested
+17:45:33 INFO [kook_bot.bot] stopped by user
+17:45:34 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=4760888878941680 log_channel_id=4760888878941680 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:45:34 INFO [kook_bot.database] database initialized backend=sqlite
+17:45:34 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:45:34 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:45:34 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4QU8rRk03YTZ4OW9GSmNyTjN2Y0hRbXpUYmt6ZFByb2p1QXpYdHdaZ2JnMGtFOEgvMlB4TWJCOStyb3ZIeE5wRUlic2w1Nmd0ajZXY3kyZnRZb21WTlo2b0NJR21tZFJVSmV2WUV6ZlF2ODdzcUFFMEV2NERWalN1Vmw2cm5oeXJ3PT0=
+17:45:34 INFO [kook_bot.gateway] connected session_id=907d5795-ca9d-4e8e-817a-9ddcd7fd21ee
+17:46:02 INFO [kook_bot.gateway] gateway shutdown requested
+17:46:02 INFO [kook_bot.bot] shutdown requested
+17:46:02 INFO [kook_bot.bot] stopped by user
+17:46:02 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:46:02 INFO [kook_bot.database] database initialized backend=sqlite
+17:46:02 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:46:02 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:46:03 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4S3JsSkxNWlk5VWxUbGJPVHRCMFpWcWtHTVdwVGNQemNDSUNtR0lOZngwdXh4aU5VZDJ2UTFkZEhSdWhkZTJxQUZ0bER6bmo2UFNTZ0ZRTFlRV0NPa2lqVkNTT3NVWUJURkprS3pIMzAzQm5pdERUMWtZMUNtUGpDM3d5UTlSRm93PT0=
+17:46:03 INFO [kook_bot.gateway] connected session_id=2f1388ed-d898-46ad-92ea-8d173a830e4c
+17:49:24 INFO [kook_bot.gateway] gateway shutdown requested
+17:49:24 INFO [kook_bot.bot] shutdown requested
+17:49:24 INFO [kook_bot.bot] stopped by user
+17:49:25 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:49:25 INFO [kook_bot.database] database initialized backend=sqlite
+17:49:25 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:49:25 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:49:25 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4R1RmMTNQaFRrQ1BzaG1jSWNmd0dRQjhUbElYZTRQMm1DbjBRQ0ZjMGtUY2NvTTNaRG5ONXd6MzZZbDQxTFJrclpzdHgyM0pkek9zanZlUVplL3Q3QnVOeUsrTEtheElvbkZSd0ZWM1Y1di9BSzdJalc1OGVQbkx1TDlLQkRWdkRRPT0=
+17:49:25 INFO [kook_bot.gateway] connected session_id=745ce1c3-29ce-4dd9-90a3-532490114e21
+17:49:30 INFO [kook_bot.gateway] gateway shutdown requested
+17:49:30 INFO [kook_bot.bot] shutdown requested
+17:49:30 INFO [kook_bot.bot] stopped by user
+17:51:56 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:51:56 INFO [kook_bot.database] database initialized backend=sqlite
+17:51:56 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:51:56 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:51:57 INFO [kook_bot.gateway] connecting url=wss://nws2.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4SldVc3UvWnhVaVlmTFZMV25CNkdhU1dKS003OVFPcGNwSWQwZEJsNGpERDZKOU1IKzlncGtXaFFvNDZnKzNyZVpOYndlQzE1M2U4VTZ1cXpCS0pPR1NhSUxHNElRUzhCTlNvNkpKQzMzc3Q3WUk3QkJhRUxNSlpzcm1JVU9TMDVRPT0=
+17:51:57 INFO [kook_bot.gateway] connected session_id=5b79c3f6-7694-42e6-ac31-e4711f9dcd10
+17:52:04 INFO [kook_bot.gateway] gateway shutdown requested
+17:52:04 INFO [kook_bot.bot] shutdown requested
+17:52:04 INFO [kook_bot.bot] stopped by user
+17:53:09 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:53:09 INFO [kook_bot.database] database initialized backend=sqlite
+17:53:09 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:53:09 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:53:11 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4QUE5MnRPWTJRdnVQWG16TkNCVXprQWZrU3ZYbzg0eDQ1elZkVVdmRFBQUWtXRi83RVVrdGpkUzJyclVUbzVtTlBNTWdLVzdsNWhKT05MU2grMjhlbkh0R0JBVjNGbGVmKzhteE9uRE42UkNROGdEc25udmFzY3NTVjBTVm1JVGlnPT0=
+17:53:11 INFO [kook_bot.gateway] connected session_id=e5bc2c19-561b-4deb-97f4-e402f275f4d0
+17:55:04 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:55:33 INFO [kook_bot.gateway] gateway shutdown requested
+17:55:33 INFO [kook_bot.bot] shutdown requested
+17:55:33 INFO [kook_bot.bot] stopped by user
+17:55:34 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('274442858',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:55:34 INFO [kook_bot.database] database initialized backend=sqlite
+17:55:34 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('274442858',)
+17:55:34 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:55:34 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4SE1lRmk5b09naWVuemUramtXQldCWkJWdkg2R3cvYUZpbm1DL2dWZUtlb1J2RXA1S2RMdFJnZkFRYXhHQ01iUkdhaW5hcXlCMXhPeHRjTkxXbHVXN1VJTm9vNFNaZDM1anBiWkJRMVczQzJpWGlXR0xFVGNzb2hYaWwzOFk5SUtRPT0=
+17:55:34 INFO [kook_bot.gateway] connected session_id=b116200b-b369-4551-9448-383c82fc9b33
+17:55:57 INFO [kook_bot.gateway] gateway shutdown requested
+17:55:57 INFO [kook_bot.bot] shutdown requested
+17:55:57 INFO [kook_bot.bot] stopped by user
+17:55:58 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('274442858',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:55:58 INFO [kook_bot.database] database initialized backend=sqlite
+17:55:58 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('274442858',)
+17:55:58 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:55:58 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4TEQyWnFhYlFNaFhsa0JLd0duWTFQREZjV2JaUXQwc0wvSUtxeThoMUw4SHNBMXM0Vm11TXFTU3dPU1NsM28yaHZWNWpwUGtvbkZaRXp6RUFoMUlDUWZQdmJQU1FaS1RUUHZNc0dka1Rya0EzWWd6Uk9xNzFYdmtxdmJKZGhRUEVBPT0=
+17:55:58 INFO [kook_bot.gateway] connected session_id=79c74adf-7751-45a2-b71f-5b9135ef53ea
+17:57:12 INFO [kook_bot.gateway] gateway shutdown requested
+17:57:12 INFO [kook_bot.bot] shutdown requested
+17:57:12 INFO [kook_bot.bot] stopped by user
+17:57:13 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+17:57:13 INFO [kook_bot.database] database initialized backend=sqlite
+17:57:13 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+17:57:13 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:57:13 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4SmdCbWFtblRZZisxMnpONkVDZzFnVFpRQ3dDRWNGQ2NXVnB3ZnhnQU1iOWh4Q055MksvcFZ3T2JwQlN4UVR3TFBqRmlOUnE3NEtLSGc3MXNKVTlGMHlqZXNhcTJjdlBQcW5yRGUzblRXRXp2WDJ4TXhuYjJ0R3NjOWZjaDQrRmRBPT0=
+17:57:13 INFO [kook_bot.gateway] connected session_id=313e7689-29e5-4dab-a6f5-04d2265d8e79
+17:59:51 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+17:59:51 ERROR [kook_bot.bot] command failed name='export_cards' msg_id=d9f8695b-b23d-4fdc-bb4d-265392318dc1
+Traceback (most recent call last):
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\bot.py", line 496, in _dispatch_message
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\command_modules\store_admin.py", line 50, in export_cards_command
+    rows = ctx.bot.store.export_recharge_cards(include_used=include_used)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'StoreService' object has no attribute 'export_recharge_cards'
+18:00:43 INFO [kook_bot.gateway] gateway shutdown requested
+18:00:43 INFO [kook_bot.bot] shutdown requested
+18:00:43 INFO [kook_bot.bot] stopped by user
+18:00:44 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+18:00:44 INFO [kook_bot.database] database initialized backend=sqlite
+18:00:44 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+18:00:44 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+18:00:45 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4Si9tcVJ5alpFUDUyZS9sOHk5c2daT1F3Q1VKVXZicjRlUW5JRTVzS0g3U2dudnMxOUZKQ21wUVFuWTRORytIL1h4RllIOEF1VW5DUmxxVzVoemt3b01zMnpSV2dyd25xVXlUeStDak14Sjl6T3loU1BvVUJ4VlAyY29LNE45YU53PT0=
+18:00:45 INFO [kook_bot.gateway] connected session_id=b0766afa-2369-464a-86c5-e7c7c3209636
+18:03:32 INFO [kook_bot.gateway] gateway shutdown requested
+18:03:32 INFO [kook_bot.bot] shutdown requested
+18:03:32 INFO [kook_bot.bot] stopped by user
+18:03:40 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+18:03:40 INFO [kook_bot.database] database initialized backend=sqlite
+18:03:40 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+18:03:41 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+18:03:41 INFO [kook_bot.gateway] connecting url=wss://nws2.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4SkkvTUNBcHJJN0pndm5oY2hBT0NQWmlscm9DTXFXSTNrYVRJNFMwR0xlbW1xN2tiOUVPMm5LUzh1UFJ5Q0ZPTHlhTHZ4aGdjSFBUV1NMM0JjMWMxK2FCdHcrbUh0U2ExemFsVTA3cDgzVDVKeG1weW9VNWZPY3dlb3llL2VMQm93PT0=
+18:03:41 INFO [kook_bot.gateway] connected session_id=66df910e-bfe8-423f-b967-ec79438377af
+18:04:40 INFO [kook_bot.gateway] gateway shutdown requested
+18:04:40 INFO [kook_bot.bot] shutdown requested
+18:04:40 INFO [kook_bot.bot] stopped by user
+18:08:02 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+18:08:02 INFO [kook_bot.database] database initialized backend=sqlite
+18:08:02 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+18:08:02 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+18:08:02 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4S2wyOVErWXkxMTlocDl0YTYrMnd6RHo3SmhWUnBZUyswY3pBY20yR0pPdk5LWG53TzMzVmppUms4Uzh6MUxVeTQwMmQ3eDhWeC8wSmI5VlBNR0dTNFVBRndTcWJZRGMyRndyazZHNUVveWFFNnpxTFpDT3FESUhCaHIyRUJBeFFRPT0=
+18:08:03 INFO [kook_bot.gateway] connected session_id=8867cd50-803a-4fb4-9c70-84ccebd0bae5
+19:00:23 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+19:00:23 INFO [kook_bot.database] database initialized backend=sqlite
+19:00:23 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+19:00:23 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+19:00:24 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4TzJlZzhqUTMwQjJaNERESTJVM0ZYK25ueks3UFhZSitLU3k0Q1cyc3BLS1NUa1dSdjhORzNIb09Wa1ZscnEvWmExaUVuaTZMc0NJaWNoWjdzcDJOSEtJR25kQmI3d2RWOGtSU0lRWWluZmJJeDJmaDJ2d1NwL0MzOFpaVko3bTlRPT0=
+19:00:24 INFO [kook_bot.gateway] connected session_id=d761f0d8-914b-4315-985f-634b30901cd1
+19:03:08 INFO [kook_bot.gateway] gateway shutdown requested
+19:03:08 INFO [kook_bot.bot] shutdown requested
+19:03:08 INFO [kook_bot.bot] stopped by user
+19:03:09 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+19:03:09 INFO [kook_bot.database] database initialized backend=sqlite
+19:03:09 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+19:03:09 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+19:03:09 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4UEJoQlhxcjBQSTg5Vm1iTmd2R1ExUWZuY3ErTUFwYXhicE9HOVJpODJsZ3ozNUsvdFRsNm1PWWpwNVU1YkxLbXl1TUFqNHFCU2U2WStQQXozQ2dJdzgvbnV0Z203L1NnNnZmZmVJL056bHNkQnFuYXNnOENlQTAxU1dVd2RnYStRPT0=
+19:03:10 INFO [kook_bot.gateway] connected session_id=b1740527-593b-473d-b541-10fb5c9830ad
