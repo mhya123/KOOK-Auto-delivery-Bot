@@ -8,6 +8,7 @@ This project is a KOOK bot for:
 - balance management
 - product and key inventory management
 - automatic key delivery after purchase
+- restock subscription and refund workflow
 - permission control with `super_admin`, `admin`, and `user`
 - hot reload for command modules
 - sqlite or mysql backend switch by environment variables
@@ -40,6 +41,8 @@ Admin commands can be restricted to a specific KOOK channel, and admin operation
 - `/recharge <card_code>`
 - `/products`
 - `/buy <product_id> [quantity]`
+- `/subscribe <product_id>`
+- `/unsubscribe <product_id>`
 - `/myrole`
 
 ### Admin commands
@@ -51,7 +54,9 @@ Admin commands can be restricted to a specific KOOK channel, and admin operation
 - `/add_product "<name>" "<description>"`
 - `/add_key <product_id> <price> "<key_content>"`
 - `/add_keys <product_id> <price> "<key1\nkey2\nkey3>"`
-- `/import_file <product_id> <price>` with a `.txt` or `.csv` attachment
+- `/import_file <product_id> <price> [attachment|web]`
+- `/cancel_import`
+- `/refund <user_id> "<key_content>"`
 
 ### Super admin commands
 
@@ -125,6 +130,12 @@ KOOK_LOG_HTTP=false
 KOOK_LOG_EVENTS=false
 KOOK_LOG_COMMANDS=false
 KOOK_LOG_COMMAND_STATUS=false
+KOOK_LOG_IMPORTS=false
+KOOK_IMPORT_WEB_ENABLED=false
+KOOK_IMPORT_WEB_HOST=127.0.0.1
+KOOK_IMPORT_WEB_PORT=18080
+KOOK_IMPORT_WEB_BASE_URL=http://127.0.0.1:18080
+KOOK_IMPORT_WEB_TTL_SECONDS=600
 KOOK_LOG_TO_FILE=true
 KOOK_LOG_DIR=logs
 KOOK_LOG_FILE=kook-bot.log
@@ -170,8 +181,48 @@ Default behavior:
 - commands requiring `admin` or `super_admin` can only be used in `KOOK_ADMIN_COMMAND_CHANNEL_ID`
 - admin command success, failure, and rejected channel attempts are pushed to `KOOK_LOG_CHANNEL_ID`
 
+## Import modes
+
+`/import_file <product_id> <price> [attachment|web]` supports two schemes:
+
+- `attachment`
+  - default mode
+  - after the command, upload a `.txt` or `.csv` file in the same channel within 30 seconds
+- `web`
+  - the bot creates a one-time upload page
+  - the upload URL and password are sent by DM
+  - the page expires automatically after `KOOK_IMPORT_WEB_TTL_SECONDS`
+
+To enable web upload mode:
+
+```env
+KOOK_IMPORT_WEB_ENABLED=true
+KOOK_IMPORT_WEB_HOST=0.0.0.0
+KOOK_IMPORT_WEB_PORT=18080
+KOOK_IMPORT_WEB_BASE_URL=https://your-domain.example.com:18080
+KOOK_IMPORT_WEB_TTL_SECONDS=600
+```
+
 ## Run
 
 ```powershell
 py main.py
 ```
+
+## Import debugging
+
+If file upload succeeds but import does not start, enable the import trace logs:
+
+```env
+KOOK_LOG_LEVEL=INFO
+KOOK_LOG_IMPORTS=true
+KOOK_LOG_TO_FILE=true
+```
+
+Then check `logs/kook-bot.log` for:
+
+- pending upload session creation
+- attachment matching result
+- download success or failure
+- decoded line count
+- database import result or rejection reason

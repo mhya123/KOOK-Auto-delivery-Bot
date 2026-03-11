@@ -11,7 +11,7 @@ from typing import Any
 from aiohttp import ClientSession, WSMsgType
 
 from .context import MessageEvent
-from .http import KookHttpClient
+from .kook_http import KookHttpClient
 from .logging_utils import get_logger
 
 logger = get_logger("kook_bot.gateway")

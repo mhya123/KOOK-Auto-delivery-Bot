@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..bot import KookBot
-from ..cards import build_fact_cards, build_text_cards
+from ..cards import build_fact_cards, build_status_cards, build_text_cards
 from ..context import CommandContext
 from ..store_service import InsufficientBalanceError, NotFoundError, OutOfStockError, StoreError
 
@@ -19,12 +19,79 @@ def register(bot: KookBot) -> None:
             await ctx.reply_t("common.no_products")
             return
 
-        product_lines = [ctx.t("store.products.item", **product) for product in products]
+        product_lines = []
+        for product in products:
+            status_key = "store.products.status_out_of_stock" if int(product["stock"]) == 0 else "store.products.status_in_stock"
+            product_lines.append(
+                ctx.t(
+                    "store.products.item",
+                    **product,
+                    status=ctx.t(status_key, stock=product["stock"]),
+                )
+            )
         await ctx.reply_card(
             build_text_cards(
                 "\n".join(product_lines),
                 title=ctx.t("store.products.title"),
                 theme="secondary",
+            )
+        )
+
+    @bot.command(
+        "subscribe",
+        description="Subscribe to restock notifications for an out-of-stock product.",
+        usage="/subscribe <product_id>",
+    )
+    async def subscribe_command(ctx: CommandContext) -> None:
+        if not ctx.args:
+            await ctx.reply_warning_t("store.subscribe.usage")
+            return
+
+        product_id = ctx.args[0].strip()
+        try:
+            result = ctx.bot.store.subscribe_product(ctx.author_id, product_id)
+        except (StoreError, NotFoundError) as exc:
+            await ctx.reply_error(exc)
+            return
+
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.subscribe.title"),
+                body=ctx.t(
+                    "store.subscribe.success",
+                    product_id=result["product_id"],
+                    product_name=result["product_name"],
+                ),
+                theme="success",
+            )
+        )
+
+    @bot.command(
+        "unsubscribe",
+        description="Cancel the restock notification subscription for a product.",
+        usage="/unsubscribe <product_id>",
+    )
+    async def unsubscribe_command(ctx: CommandContext) -> None:
+        if not ctx.args:
+            await ctx.reply_warning_t("store.unsubscribe.usage")
+            return
+
+        product_id = ctx.args[0].strip()
+        try:
+            result = ctx.bot.store.unsubscribe_product(ctx.author_id, product_id)
+        except (StoreError, NotFoundError) as exc:
+            await ctx.reply_error(exc)
+            return
+
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.unsubscribe.title"),
+                body=ctx.t(
+                    "store.unsubscribe.success",
+                    product_id=result["product_id"],
+                    product_name=result["product_name"],
+                ),
+                theme="success",
             )
         )
 

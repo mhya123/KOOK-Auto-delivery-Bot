@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import datetime
 
 from ..bot import KookBot
 from ..cards import build_status_cards
 from ..context import CommandContext
 from ..export_utils import build_product_keys_workbook, build_recharge_cards_workbook
+from ..logging_utils import get_logger
 from ..permissions import Role
 from ..store_service import NotFoundError, StoreError
+
+logger = get_logger("kook_bot.store_admin")
 
 
 def register(bot: KookBot) -> None:
@@ -183,6 +185,8 @@ def register(bot: KookBot) -> None:
             await ctx.reply_error(exc)
             return
 
+        await ctx.bot.notify_restock_subscribers(result)
+
         await ctx.reply_t(
             "store.add_key.success",
             product_id=result["product_id"],
@@ -216,6 +220,8 @@ def register(bot: KookBot) -> None:
             await ctx.reply_error(exc)
             return
 
+        await ctx.bot.notify_restock_subscribers(result)
+
         await ctx.reply_t(
             "store.add_keys.success",
             product_id=result["product_id"],
@@ -226,17 +232,12 @@ def register(bot: KookBot) -> None:
     @bot.command(
         "import_file",
         description="Import sellable keys from a txt or csv attachment.",
-        usage="/import_file <product_id> <price>",
+        usage="/import_file <product_id> <price> [attachment|web]",
         required_role=Role.ADMIN,
     )
     async def import_file_command(ctx: CommandContext) -> None:
         if len(ctx.args) < 2:
-            await ctx.reply_t("store.import_file.usage")
-            return
-
-        attachment = _pick_import_attachment(ctx.attachments)
-        if attachment is None:
-            await ctx.reply_t("store.import_file.missing_attachment")
+            await ctx.reply_warning_t("store.import_file.usage")
             return
 
         product_id = ctx.args[0].strip()
@@ -246,34 +247,152 @@ def register(bot: KookBot) -> None:
             await ctx.reply_t("common.price_integer")
             return
 
-        if not _is_supported_import_attachment(attachment):
-            await ctx.reply_t("store.import_file.invalid_attachment", file_name=attachment.get("name") or "unknown")
+        mode = ctx.args[2].strip().lower() if len(ctx.args) >= 3 else "attachment"
+        if mode in {"file", "attachment", "channel"}:
+            pending = ctx.bot.start_pending_import_upload(ctx.event, product_id, price, mode="attachment", ttl_seconds=30)
+            body_key = "store.import_file.pending_replaced" if pending.status == "replaced" else "store.import_file.pending_started"
+            await ctx.reply_card(
+                build_status_cards(
+                    ctx.t("store.import_file.pending_title"),
+                    body=ctx.t(body_key, seconds=30),
+                    facts=[
+                        (ctx.t("store.import_file.field.product_id"), product_id),
+                        (ctx.t("store.import_file.field.price"), str(price)),
+                        (ctx.t("store.import_file.field.expires"), "30s"),
+                        (ctx.t("store.import_file.field.mode"), "attachment"),
+                    ],
+                    theme="warning",
+                )
+            )
             return
 
-        attachment_url = attachment.get("url", "").strip()
-        if not attachment_url:
-            await ctx.reply_t("store.import_file.invalid_attachment", file_name=attachment.get("name") or "unknown")
+        if mode in {"web", "portal", "url"}:
+            if not ctx.bot.import_web_available():
+                await ctx.reply_warning_t("store.import_file.web_disabled")
+                return
+
+            pending = ctx.bot.start_pending_import_upload(
+                ctx.event,
+                product_id,
+                price,
+                mode="web",
+                ttl_seconds=ctx.bot.settings.import_web_ttl_seconds,
+            )
+            upload_url = ctx.bot.build_import_upload_url(pending.upload_id)
+            try:
+                await ctx.bot.send_direct_card(
+                    build_status_cards(
+                        ctx.t("store.import_file.web_dm_title"),
+                        body=ctx.t(
+                            "store.import_file.web_dm_body",
+                            url=upload_url,
+                            password=pending.password,
+                            seconds=ctx.bot.settings.import_web_ttl_seconds,
+                        ),
+                        facts=[
+                            (ctx.t("store.import_file.field.product_id"), product_id),
+                            (ctx.t("store.import_file.field.price"), str(price)),
+                            (ctx.t("store.import_file.field.mode"), "web"),
+                        ],
+                        theme="warning",
+                    ),
+                    target_id=ctx.author_id,
+                )
+            except Exception:
+                logger.exception("failed to send import web dm author_id=%s", ctx.author_id)
+                ctx.bot.cancel_pending_import_upload(ctx.author_id)
+                await ctx.reply_error(StoreError("store.import_file.web_dm_failed"))
+                return
+
+            body_key = "store.import_file.web_pending_replaced" if pending.status == "replaced" else "store.import_file.web_pending_started"
+            await ctx.reply_card(
+                build_status_cards(
+                    ctx.t("store.import_file.web_pending_title"),
+                    body=ctx.t(body_key),
+                    facts=[
+                        (ctx.t("store.import_file.field.product_id"), product_id),
+                        (ctx.t("store.import_file.field.price"), str(price)),
+                        (ctx.t("store.import_file.field.expires"), str(ctx.bot.settings.import_web_ttl_seconds)),
+                        (ctx.t("store.import_file.field.mode"), "web"),
+                    ],
+                    theme="warning",
+                )
+            )
             return
 
+        await ctx.reply_warning_t("store.import_file.invalid_mode")
+
+    @bot.command(
+        "cancel_import",
+        description="Cancel the pending import upload.",
+        usage="/cancel_import",
+        required_role=Role.ADMIN,
+        aliases=("cancelupload",),
+    )
+    async def cancel_import_command(ctx: CommandContext) -> None:
+        cancelled = ctx.bot.cancel_pending_import_upload(ctx.author_id)
+        if not cancelled:
+            await ctx.reply_warning_t("store.import_file.cancel_empty")
+            return
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.import_file.cancel_title"),
+                body=ctx.t("store.import_file.cancel_success"),
+                theme="success",
+            )
+        )
+
+    @bot.command(
+        "refund",
+        description="Refund a sold key and mark it as void.",
+        usage='/refund <user_id> "<key_content>"',
+        required_role=Role.ADMIN,
+    )
+    async def refund_command(ctx: CommandContext) -> None:
+        if len(ctx.args) < 2:
+            await ctx.reply_warning_t("store.refund.usage")
+            return
+
+        target_user_id = ctx.args[0].strip()
+        key_content = " ".join(ctx.args[1:]).strip()
         try:
-            raw_bytes = await ctx.bot.download_attachment_bytes(attachment_url)
-        except Exception:
-            await ctx.reply_t("store.import_file.download_failed")
-            return
-
-        key_contents = _decode_import_file(raw_bytes).splitlines()
-        try:
-            result = ctx.bot.store.import_keys(ctx.author_id, product_id, price, key_contents)
+            result = ctx.bot.store.refund_product_key(ctx.author_id, target_user_id, key_content)
         except (StoreError, NotFoundError) as exc:
             await ctx.reply_error(exc)
             return
 
-        await ctx.reply_t(
-            "store.import_file.success",
-            product_id=result["product_id"],
-            parsed_total=result["parsed_total"],
-            inserted_count=result["inserted_count"],
-            skipped_duplicates=result["skipped_duplicates"],
+        try:
+            await ctx.bot.send_direct_card(
+                build_status_cards(
+                    ctx.t("store.refund.dm_title"),
+                    body=ctx.t(
+                        "store.refund.dm",
+                        refund_amount=result["refund_amount"],
+                        balance_after=result["balance_after"],
+                        product_name=result["product_name"],
+                    ),
+                    theme="warning",
+                ),
+                target_id=target_user_id,
+            )
+        except Exception:
+            logger.exception("failed to send refund dm target_user_id=%s", target_user_id)
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.refund.title"),
+                body=ctx.t(
+                    "store.refund.success",
+                    user_id=result["user_id"],
+                    refund_amount=result["refund_amount"],
+                ),
+                facts=[
+                    (ctx.t("store.refund.field.user_id"), str(result["user_id"])),
+                    (ctx.t("store.refund.field.product_name"), str(result["product_name"])),
+                    (ctx.t("store.refund.field.refund_amount"), str(result["refund_amount"])),
+                    (ctx.t("store.refund.field.balance_after"), str(result["balance_after"])),
+                ],
+                theme="success",
+            )
         )
 
 
@@ -284,37 +403,6 @@ def _split_key_batch(raw_text: str) -> list[str]:
     if "||" in normalized:
         return [line.strip() for line in normalized.split("||") if line.strip()]
     return [normalized.strip()] if normalized.strip() else []
-
-
-def _pick_import_attachment(attachments: Iterable[dict[str, str]]) -> dict[str, str] | None:
-    for attachment in attachments:
-        if _is_supported_import_attachment(attachment):
-            return attachment
-    for attachment in attachments:
-        return attachment
-    return None
-
-
-def _is_supported_import_attachment(attachment: dict[str, str]) -> bool:
-    name = attachment.get("name", "").lower()
-    url = attachment.get("url", "").lower()
-    file_type = attachment.get("file_type", "").lower()
-    return (
-        name.endswith(".txt")
-        or name.endswith(".csv")
-        or url.endswith(".txt")
-        or url.endswith(".csv")
-        or file_type in {"txt", "csv", "text/plain", "text/csv"}
-    )
-
-
-def _decode_import_file(raw_bytes: bytes) -> str:
-    for encoding in ("utf-8-sig", "utf-8", "gbk"):
-        try:
-            return raw_bytes.decode(encoding)
-        except UnicodeDecodeError:
-            continue
-    return raw_bytes.decode("utf-8", errors="replace")
 
 
 def _build_export_filename(prefix: str) -> str:

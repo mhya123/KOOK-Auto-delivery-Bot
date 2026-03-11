@@ -1,23 +1,23 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import shlex
 from pathlib import Path
 from typing import Any
 
 from aiohttp import ClientSession
 
+from .bot_imports import BotImportMixin, PendingImportUpload
+from .bot_transport import BotTransportMixin
 from .cards import build_command_log_cards as make_command_log_cards
-from .cards import build_text_cards as make_text_cards
 from .command_loader import CommandLoader
 from .commands import CommandRegistry
 from .config import Settings
 from .context import CommandContext, MessageEvent
 from .database import Database
 from .gateway import KookGateway
-from .http import KookHttpClient
 from .i18n import Translator
+from .kook_http import KookHttpClient
 from .logging_utils import get_logger
 from .permissions import PermissionService, Role, role_allows
 from .store_service import StoreService
@@ -25,7 +25,9 @@ from .store_service import StoreService
 logger = get_logger("kook_bot.bot")
 
 
-class KookBot:
+class KookBot(BotTransportMixin, BotImportMixin):
+    # 核心协调器：这里只保留启动、依赖装配、权限判断和命令分发。
+    # 发送消息能力拆到 BotTransportMixin，导入流程拆到 BotImportMixin。
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         project_root = Path(__file__).resolve().parents[2]
@@ -37,6 +39,8 @@ class KookBot:
         self.translator = Translator(settings.locale, project_root / settings.locale_dir)
         self._http: KookHttpClient | None = None
         self._session: ClientSession | None = None
+        self._import_web_runner: Any | None = None
+        self._pending_import_uploads: dict[str, PendingImportUpload] = {}
 
     def command(self, name: str, **kwargs):
         return self.commands.command(name, **kwargs)
@@ -49,66 +53,9 @@ class KookBot:
         if self.settings.log_command_status:
             logger.info(message, *args)
 
-    def build_text_cards(
-        self,
-        content: str,
-        *,
-        theme: str = "primary",
-        title: str | None = None,
-    ) -> list[dict[str, Any]]:
-        # 普通文本回复统一包装成卡片，避免命令层重复拼装。
-        lines = content.splitlines() or [content]
-        chunks: list[str] = []
-        current_lines: list[str] = []
-        current_length = 0
-
-        for line in lines:
-            normalized_line = line or " "
-            line_length = len(normalized_line) + 1
-            if current_lines and current_length + line_length > 1500:
-                chunks.append("\n".join(current_lines))
-                current_lines = []
-                current_length = 0
-            current_lines.append(normalized_line)
-            current_length += line_length
-
-        if current_lines:
-            chunks.append("\n".join(current_lines))
-        if not chunks:
-            chunks.append(" ")
-
-        cards: list[dict[str, Any]] = []
-        for index, chunk in enumerate(chunks):
-            modules: list[dict[str, Any]] = []
-            if title and index == 0:
-                modules.append(
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain-text",
-                            "content": title,
-                        },
-                    }
-                )
-                modules.append({"type": "divider"})
-            modules.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "kmarkdown",
-                        "content": chunk,
-                    },
-                }
-            )
-            cards.append(
-                {
-                    "type": "card",
-                    "theme": theme if index == 0 else "secondary",
-                    "size": "lg",
-                    "modules": modules,
-                }
-            )
-        return cards
+    def _log_import(self, message: str, *args: object) -> None:
+        if self.settings.log_imports:
+            logger.info(message, *args)
 
     async def start(self) -> None:
         async with ClientSession() as session:
@@ -129,8 +76,9 @@ class KookBot:
             logger.info(
                 (
                     "starting prefix=%r api_base_url=%s db_backend=%s super_admin_ids=%s log_level=%s "
-                    "log_http=%s log_events=%s log_commands=%s log_command_status=%s locale=%s locale_dir=%s "
-                    "admin_command_channel_id=%s log_channel_id=%s "
+                    "log_http=%s log_events=%s log_commands=%s log_command_status=%s log_imports=%s locale=%s locale_dir=%s "
+                    "admin_command_channel_id=%s log_channel_id=%s import_web_enabled=%s import_web_host=%s "
+                    "import_web_port=%s import_web_base_url=%s import_web_ttl_seconds=%s "
                     "log_to_file=%s log_dir=%s log_file=%s log_max_bytes=%s log_backup_count=%s"
                 ),
                 self.settings.command_prefix,
@@ -142,10 +90,16 @@ class KookBot:
                 self.settings.log_events,
                 self.settings.log_commands,
                 self.settings.log_command_status,
+                self.settings.log_imports,
                 self.settings.locale,
                 self.settings.locale_dir,
                 self.settings.admin_command_channel_id,
                 self.settings.log_channel_id,
+                self.settings.import_web_enabled,
+                self.settings.import_web_host,
+                self.settings.import_web_port,
+                self.settings.import_web_base_url,
+                self.settings.import_web_ttl_seconds,
                 self.settings.log_to_file,
                 self.settings.log_dir,
                 self.settings.log_file,
@@ -154,12 +108,15 @@ class KookBot:
             )
             self.store.ensure_initialized()
             self.command_loader.load(force=True)
+            if self.settings.import_web_enabled:
+                await self._start_import_web_server()
             try:
                 await gateway.run_forever()
             except asyncio.CancelledError:
                 logger.info("shutdown requested")
                 raise
             finally:
+                await self._stop_import_web_server()
                 self._session = None
 
     def run(self) -> None:
@@ -167,183 +124,6 @@ class KookBot:
             asyncio.run(self.start())
         except KeyboardInterrupt:
             logger.info("stopped by user")
-
-    async def send_channel_message(
-        self,
-        channel_id: str,
-        content: str,
-        *,
-        message_type: int = 9,
-        reply_msg_id: str | None = None,
-    ) -> dict[str, Any]:
-        if self._http is None:
-            raise RuntimeError("Bot HTTP client has not been initialized.")
-        self._log_command_status(
-            "sending channel message channel_id=%s reply_msg_id=%s content=%r",
-            channel_id,
-            reply_msg_id,
-            content,
-        )
-        result = await self._http.create_channel_message(
-            channel_id,
-            content,
-            message_type=message_type,
-            reply_msg_id=reply_msg_id,
-        )
-        self._log_command_status("channel message sent result=%s", result)
-        return result
-
-    async def send_direct_message(
-        self,
-        content: str,
-        *,
-        target_id: str | None = None,
-        chat_code: str | None = None,
-        message_type: int = 9,
-        reply_msg_id: str | None = None,
-    ) -> dict[str, Any]:
-        if self._http is None:
-            raise RuntimeError("Bot HTTP client has not been initialized.")
-        self._log_command_status(
-            "sending direct message target_id=%s chat_code=%s reply_msg_id=%s content=%r",
-            target_id,
-            chat_code,
-            reply_msg_id,
-            content,
-        )
-        result = await self._http.create_direct_message(
-            content,
-            target_id=target_id,
-            chat_code=chat_code,
-            message_type=message_type,
-            reply_msg_id=reply_msg_id,
-        )
-        self._log_command_status("direct message sent result=%s", result)
-        return result
-
-    async def reply_to_event(self, event: MessageEvent, content: str) -> dict[str, Any]:
-        return await self.reply_card_to_event(
-            event,
-            make_text_cards(content),
-        )
-
-    async def send_private_message(self, user_id: str, content: str) -> dict[str, Any]:
-        return await self.send_direct_card(make_text_cards(content), target_id=user_id)
-
-    async def send_dm_message(self, user_id: str, content: str) -> dict[str, Any]:
-        return await self.send_private_message(user_id, content)
-
-    async def send_group_message(self, channel_id: str, content: str) -> dict[str, Any]:
-        return await self.send_channel_card(channel_id, make_text_cards(content))
-
-    async def send_channel_card(
-        self,
-        channel_id: str,
-        cards: list[dict[str, Any]],
-        *,
-        reply_msg_id: str | None = None,
-    ) -> dict[str, Any]:
-        return await self.send_channel_message(
-            channel_id,
-            json.dumps(cards, ensure_ascii=False),
-            message_type=10,
-            reply_msg_id=reply_msg_id,
-        )
-
-    async def send_direct_card(
-        self,
-        cards: list[dict[str, Any]],
-        *,
-        target_id: str | None = None,
-        chat_code: str | None = None,
-        reply_msg_id: str | None = None,
-    ) -> dict[str, Any]:
-        return await self.send_direct_message(
-            json.dumps(cards, ensure_ascii=False),
-            target_id=target_id,
-            chat_code=chat_code,
-            message_type=10,
-            reply_msg_id=reply_msg_id,
-        )
-
-    async def reply_card_to_event(self, event: MessageEvent, cards: list[dict[str, Any]]) -> dict[str, Any]:
-        if event.is_direct:
-            return await self.send_direct_card(
-                cards,
-                target_id=event.author_id,
-                chat_code=event.chat_code or None,
-                reply_msg_id=event.msg_id,
-            )
-        return await self.send_channel_card(
-            event.target_id,
-            cards,
-            reply_msg_id=event.msg_id,
-        )
-
-    async def send_log_message(self, content: str) -> None:
-        channel_id = self.settings.log_channel_id.strip()
-        if not channel_id:
-            return
-        try:
-            await self.send_channel_card(channel_id, make_text_cards(content, theme="secondary"))
-        except Exception:
-            logger.exception("failed to send log message channel_id=%s", channel_id)
-
-    async def send_log_card(self, cards: list[dict[str, Any]]) -> None:
-        channel_id = self.settings.log_channel_id.strip()
-        if not channel_id:
-            return
-        try:
-            await self.send_channel_card(channel_id, cards)
-        except Exception:
-            logger.exception("failed to send log card channel_id=%s", channel_id)
-
-    async def upload_file(
-        self,
-        filename: str,
-        content_bytes: bytes,
-        *,
-        content_type: str = "application/octet-stream",
-    ) -> str:
-        if self._http is None:
-            raise RuntimeError("Bot HTTP client has not been initialized.")
-        return await self._http.upload_asset(filename, content_bytes, content_type=content_type)
-
-    async def send_private_file(
-        self,
-        user_id: str,
-        filename: str,
-        content_bytes: bytes,
-        *,
-        content_type: str = "application/octet-stream",
-    ) -> dict[str, Any]:
-        asset_url = await self.upload_file(filename, content_bytes, content_type=content_type)
-        return await self.send_direct_message(asset_url, target_id=user_id, message_type=4)
-
-    async def download_attachment_bytes(self, url: str) -> bytes:
-        if self._session is None:
-            raise RuntimeError("Bot session has not been initialized.")
-        async with self._session.get(url) as response:
-            response.raise_for_status()
-            return await response.read()
-
-    async def send_private_text_chunks(self, user_id: str, text: str, *, max_length: int = 1800) -> None:
-        """导出卡密和购买发货都可能很长，这里自动按长度切分私信。"""
-        remaining_lines = text.splitlines() or [text]
-        current_chunk: list[str] = []
-        current_length = 0
-
-        for line in remaining_lines:
-            line_length = len(line) + 1
-            if current_chunk and current_length + line_length > max_length:
-                await self.send_private_message(user_id, "\n".join(current_chunk))
-                current_chunk = []
-                current_length = 0
-            current_chunk.append(line)
-            current_length += line_length
-
-        if current_chunk:
-            await self.send_private_message(user_id, "\n".join(current_chunk))
 
     def get_role(self, user_id: str) -> str:
         return self.permissions.get_role(user_id)
@@ -382,114 +162,44 @@ class KookBot:
             )
         )
 
-    def _build_command_log_cards(
-        self,
-        event: MessageEvent,
-        command_name: str,
-        args: list[str],
-        *,
-        status: str,
-        detail: str = "",
-    ) -> list[dict[str, Any]]:
-        def sanitize(value: str, *, limit: int = 160) -> str:
-            safe = value.replace("`", "'").replace("\n", "\\n")
-            if len(safe) > limit:
-                return f"{safe[: limit - 3]}..."
-            return safe
-
-        status_theme = {
-            "success": "success",
-            "failed": "danger",
-            "rejected": "warning",
-        }.get(status, "secondary")
-        status_label = status.upper()
-        args_text = sanitize(" ".join(args).strip() or "-")
-        command_text = sanitize(f"{self.settings.command_prefix}{command_name}", limit=80)
-        source_channel = event.target_id if not event.is_direct else f"DM:{event.author_id}"
-        role_name = self.get_role(event.author_id)
-        raw_content = sanitize(event.content)
-        nickname = sanitize(str(event.author.get("nickname") or ""), limit=80)
-        username = sanitize(str(event.author.get("username") or ""), limit=80)
-        identify_num = sanitize(str(event.author.get("identify_num") or ""), limit=16)
-        display_name = nickname or "-"
-        account_name = username or "-"
-        if username and identify_num:
-            account_name = f"{username}#{identify_num}"
-        modules: list[dict[str, Any]] = [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain-text",
-                    "content": f"[COMMAND LOG] {status_label} {command_text}",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "kmarkdown",
-                    "content": (
-                        f"**author_id**: `{event.author_id}`\n"
-                        f"**nickname**: `{display_name}`\n"
-                        f"**username**: `{account_name}`\n"
-                        f"**role**: `{role_name}`\n"
-                        f"**source**: `{source_channel}`\n"
-                        f"**msg_id**: `{event.msg_id}`"
-                    ),
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "kmarkdown",
-                    "content": (
-                        f"**command**: `{command_text}`\n"
-                        f"**args**: `{args_text}`\n"
-                        f"**content**: `{raw_content}`"
-                    ),
-                },
-            },
-        ]
-        if detail:
-            modules.extend(
-                [
-                    {"type": "divider"},
-                    {
-                        "type": "context",
-                        "elements": [
-                            {
-                                "type": "plain-text",
-                                "content": f"detail: {detail}",
-                            }
-                        ],
-                    },
-                ]
-            )
-        return [
-            {
-                "type": "card",
-                "theme": status_theme,
-                "size": "lg",
-                "modules": modules,
-            }
-        ]
-
     async def _dispatch_message(self, event: MessageEvent) -> None:
+        # 命令模块支持热加载，每次收到消息时先检查文件变更。
         self.command_loader.load()
         if self.settings.log_events:
             logger.debug("event received %s", event.log_summary)
 
-        if not event.is_text or event.is_bot:
+        self._clear_expired_import_uploads()
+        prefix = self.settings.command_prefix
+
+        if event.is_bot:
             if self.settings.log_events:
-                logger.debug(
-                    "event ignored is_text=%s is_bot=%s msg_id=%s",
-                    event.is_text,
-                    event.is_bot,
-                    event.msg_id,
-                )
+                logger.debug("event ignored is_bot=%s msg_id=%s", event.is_bot, event.msg_id)
             return
 
-        prefix = self.settings.command_prefix
+        if event.attachments and not (event.is_text and event.content.startswith(prefix)):
+            handled = await self._handle_pending_import_upload(event)
+            if handled:
+                return
+
+        if event.author_id in self._pending_import_uploads and not event.is_text:
+            content_preview = event.content.replace("\n", "\\n")
+            if len(content_preview) > 200:
+                content_preview = f"{content_preview[:197]}..."
+            self._log_import(
+                "import pending event ignored author_id=%s msg_id=%s message_type=%s attachment_count=%s raw_keys=%s content_preview=%r",
+                event.author_id,
+                event.msg_id,
+                event.message_type,
+                len(event.attachments),
+                sorted((event.raw_event.get("extra") or {}).keys()),
+                content_preview,
+            )
+
+        if not event.is_text:
+            if self.settings.log_events:
+                logger.debug("event ignored is_text=%s msg_id=%s", event.is_text, event.msg_id)
+            return
+
         if not event.content.startswith(prefix):
             if self.settings.log_events:
                 logger.debug("command ignored missing prefix prefix=%r msg_id=%s", prefix, event.msg_id)
@@ -599,4 +309,3 @@ class KookBot:
                 detail="handler_exception",
             )
             await self.reply_to_event(event, self.t("common.command_failed"))
-            return

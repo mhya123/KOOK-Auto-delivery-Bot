@@ -56,10 +56,23 @@ SQLITE_SCHEMA_STATEMENTS = (
         key_content TEXT NOT NULL,
         price INTEGER NOT NULL,
         is_sold INTEGER NOT NULL DEFAULT 0,
+        is_void INTEGER NOT NULL DEFAULT 0,
+        void_reason TEXT,
         sold_to TEXT,
         sold_at INTEGER,
+        refunded_at INTEGER,
+        refunded_by TEXT,
         created_by TEXT,
         created_at INTEGER NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS product_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        product_id INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(user_id, product_id)
     )
     """,
     """
@@ -119,12 +132,27 @@ MYSQL_SCHEMA_STATEMENTS = (
         key_content TEXT NOT NULL,
         price BIGINT NOT NULL,
         is_sold TINYINT NOT NULL DEFAULT 0,
+        is_void TINYINT NOT NULL DEFAULT 0,
+        void_reason VARCHAR(255),
         sold_to VARCHAR(32),
         sold_at BIGINT,
+        refunded_at BIGINT,
+        refunded_by VARCHAR(32),
         created_by VARCHAR(32),
         created_at BIGINT NOT NULL,
         INDEX idx_product_keys_product_id (product_id),
-        INDEX idx_product_keys_is_sold (is_sold)
+        INDEX idx_product_keys_is_sold (is_sold),
+        INDEX idx_product_keys_is_void (is_void)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS product_subscriptions (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id VARCHAR(32) NOT NULL,
+        product_id BIGINT NOT NULL,
+        created_at BIGINT NOT NULL,
+        UNIQUE KEY uq_product_subscriptions_user_product (user_id, product_id),
+        INDEX idx_product_subscriptions_product_id (product_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """,
     """
@@ -175,6 +203,14 @@ class DatabaseSession:
     def lastrowid(self) -> int:
         return int(getattr(self._cursor, "lastrowid", 0) or 0)
 
+    @property
+    def is_mysql(self) -> bool:
+        return self._database.backend == "mysql"
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self._database.backend == "sqlite"
+
 
 class Database:
     def __init__(self, settings: Settings) -> None:
@@ -191,7 +227,12 @@ class Database:
             statements = MYSQL_SCHEMA_STATEMENTS if self._backend == "mysql" else SQLITE_SCHEMA_STATEMENTS
             for statement in statements:
                 session.execute(statement)
+            self._run_migrations(session)
         logger.info("database initialized backend=%s", self._backend)
+
+    @property
+    def backend(self) -> str:
+        return self._backend
 
     def get_user_role(self, user_id: str) -> str | None:
         with self.transaction() as session:
@@ -242,6 +283,8 @@ class Database:
             try:
                 if self._backend == "mysql":
                     connection.begin()
+                else:
+                    connection.execute("BEGIN IMMEDIATE")
                 yield session
                 connection.commit()
             except Exception:
@@ -331,3 +374,47 @@ class Database:
         else:
             self._mysql_connection.ping(reconnect=True)
         return self._mysql_connection
+
+    def _run_migrations(self, session: DatabaseSession) -> None:
+        if self._backend == "sqlite":
+            statements = (
+                "ALTER TABLE product_keys ADD COLUMN is_void INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE product_keys ADD COLUMN void_reason TEXT",
+                "ALTER TABLE product_keys ADD COLUMN refunded_at INTEGER",
+                "ALTER TABLE product_keys ADD COLUMN refunded_by TEXT",
+                "CREATE INDEX IF NOT EXISTS idx_product_keys_product_id ON product_keys(product_id)",
+                "CREATE INDEX IF NOT EXISTS idx_product_keys_is_sold ON product_keys(is_sold)",
+                "CREATE INDEX IF NOT EXISTS idx_product_keys_is_void ON product_keys(is_void)",
+                "CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id)",
+                "CREATE INDEX IF NOT EXISTS idx_product_subscriptions_product_id ON product_subscriptions(product_id)",
+            )
+        else:
+            statements = (
+                "ALTER TABLE product_keys ADD COLUMN is_void TINYINT NOT NULL DEFAULT 0",
+                "ALTER TABLE product_keys ADD COLUMN void_reason VARCHAR(255)",
+                "ALTER TABLE product_keys ADD COLUMN refunded_at BIGINT",
+                "ALTER TABLE product_keys ADD COLUMN refunded_by VARCHAR(32)",
+                "CREATE INDEX idx_product_keys_is_void ON product_keys(is_void)",
+                "CREATE INDEX idx_product_subscriptions_product_id ON product_subscriptions(product_id)",
+            )
+
+        for statement in statements:
+            self._execute_ddl_if_needed(session, statement)
+
+    def _execute_ddl_if_needed(self, session: DatabaseSession, statement: str) -> None:
+        try:
+            session.execute(statement)
+        except Exception as exc:
+            if self._is_duplicate_schema_error(exc):
+                return
+            raise
+
+    def _is_duplicate_schema_error(self, exc: Exception) -> bool:
+        if self._backend == "sqlite":
+            if isinstance(exc, sqlite3.OperationalError):
+                message = str(exc).lower()
+                return "duplicate column name" in message or "already exists" in message
+            return False
+
+        code = getattr(exc, "args", [None])[0]
+        return code in {1060, 1061, 1091}

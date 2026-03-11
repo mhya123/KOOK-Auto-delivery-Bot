@@ -189,6 +189,7 @@ class StoreService:
             product = self._find_product(session, product_id)
             if product is None:
                 raise NotFoundError("error.product_not_found")
+            stock_before = self._count_available_product_keys(session, int(product["id"]))
             session.execute(
                 """
                 INSERT INTO product_keys (product_id, key_content, price, created_by, created_at)
@@ -201,7 +202,14 @@ class StoreService:
                 (now, int(product["id"])),
             )
             key_id = session.lastrowid
-        return {"key_id": key_id, "product_id": int(product["id"]), "price": price}
+            restock_user_ids = self._pop_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
+        return {
+            "key_id": key_id,
+            "product_id": int(product["id"]),
+            "product_name": str(product["name"]),
+            "price": price,
+            "restock_user_ids": restock_user_ids,
+        }
 
     def add_keys(
         self,
@@ -222,6 +230,7 @@ class StoreService:
             product = self._find_product(session, product_id)
             if product is None:
                 raise NotFoundError("error.product_not_found")
+            stock_before = self._count_available_product_keys(session, int(product["id"]))
 
             rows = [
                 (int(product["id"]), key_content, price, actor_user_id, now)
@@ -238,7 +247,14 @@ class StoreService:
                 "UPDATE products SET updated_at = %s WHERE id = %s",
                 (now, int(product["id"])),
             )
-            return {"product_id": int(product["id"]), "count": len(normalized_keys), "price": price}
+            restock_user_ids = self._pop_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
+            return {
+                "product_id": int(product["id"]),
+                "product_name": str(product["name"]),
+                "count": len(normalized_keys),
+                "price": price,
+                "restock_user_ids": restock_user_ids,
+            }
 
     def import_keys(
         self,
@@ -246,7 +262,7 @@ class StoreService:
         product_id: str,
         price: int,
         key_contents: list[str],
-    ) -> dict[str, int]:
+    ) -> dict[str, int | str | list[str]]:
         if price <= 0:
             raise StoreError("error.price_positive")
 
@@ -288,13 +304,18 @@ class StoreService:
                     "UPDATE products SET updated_at = %s WHERE id = %s",
                     (now, int(product["id"])),
                 )
+                restock_user_ids = self._pop_product_subscriptions(session, int(product["id"]))
+            else:
+                restock_user_ids = []
 
             skipped_duplicates = duplicates_in_file + len(existing_keys)
             return {
                 "product_id": int(product["id"]),
+                "product_name": str(product["name"]),
                 "parsed_total": len(parsed_keys),
                 "inserted_count": len(new_keys),
                 "skipped_duplicates": skipped_duplicates,
+                "restock_user_ids": restock_user_ids,
             }
 
     def list_products(self) -> list[dict[str, int | str]]:
@@ -305,8 +326,8 @@ class StoreService:
                     p.id,
                     p.name,
                     p.description,
-                    COALESCE(MIN(CASE WHEN pk.is_sold = 0 THEN pk.price END), 0) AS price,
-                    COALESCE(SUM(CASE WHEN pk.is_sold = 0 THEN 1 ELSE 0 END), 0) AS stock
+                    COALESCE(MIN(CASE WHEN pk.is_sold = 0 AND COALESCE(pk.is_void, 0) = 0 THEN pk.price END), 0) AS price,
+                    COALESCE(SUM(CASE WHEN pk.is_sold = 0 AND COALESCE(pk.is_void, 0) = 0 THEN 1 ELSE 0 END), 0) AS stock
                 FROM products p
                 LEFT JOIN product_keys pk ON pk.product_id = p.id
                 GROUP BY p.id, p.name, p.description
@@ -389,10 +410,7 @@ class StoreService:
             )
         return grouped
 
-    def buy_product(self, user_id: str, product_id: str, *, quantity: int = 1) -> dict[str, int | str | list[str]]:
-        if quantity <= 0:
-            raise StoreError("error.quantity_positive")
-
+    def subscribe_product(self, user_id: str, product_id: str) -> dict[str, int | str]:
         now = int(time.time())
         with self.database.transaction() as session:
             self._ensure_user(session, user_id)
@@ -400,15 +418,79 @@ class StoreService:
             if product is None:
                 raise NotFoundError("error.product_not_found")
 
-            key_rows = session.fetchall(
+            stock = self._count_available_product_keys(session, int(product["id"]))
+            if stock > 0:
+                raise StoreError("error.product_in_stock", stock=stock)
+
+            existing = session.fetchone(
                 """
-                SELECT id, key_content, price
-                FROM product_keys
-                WHERE product_id = %s AND is_sold = 0
-                ORDER BY id ASC
-                LIMIT %s
+                SELECT id
+                FROM product_subscriptions
+                WHERE user_id = %s AND product_id = %s
                 """,
-                (int(product["id"]), quantity),
+                (user_id, int(product["id"])),
+            )
+            if existing is not None:
+                raise StoreError("error.product_already_subscribed")
+
+            session.execute(
+                """
+                INSERT INTO product_subscriptions (user_id, product_id, created_at)
+                VALUES (%s, %s, %s)
+                """,
+                (user_id, int(product["id"]), now),
+            )
+            return {
+                "product_id": int(product["id"]),
+                "product_name": str(product["name"]),
+            }
+
+    def unsubscribe_product(self, user_id: str, product_id: str) -> dict[str, int | str]:
+        with self.database.transaction() as session:
+            self._ensure_user(session, user_id)
+            product = self._find_product(session, product_id)
+            if product is None:
+                raise NotFoundError("error.product_not_found")
+
+            existing = session.fetchone(
+                """
+                SELECT id
+                FROM product_subscriptions
+                WHERE user_id = %s AND product_id = %s
+                """,
+                (user_id, int(product["id"])),
+            )
+            if existing is None:
+                raise StoreError("error.product_not_subscribed")
+
+            session.execute(
+                """
+                DELETE FROM product_subscriptions
+                WHERE user_id = %s AND product_id = %s
+                """,
+                (user_id, int(product["id"])),
+            )
+            return {
+                "product_id": int(product["id"]),
+                "product_name": str(product["name"]),
+            }
+
+    def buy_product(self, user_id: str, product_id: str, *, quantity: int = 1) -> dict[str, int | str | list[str]]:
+        if quantity <= 0:
+            raise StoreError("error.quantity_positive")
+
+        now = int(time.time())
+        with self.database.transaction() as session:
+            self._ensure_user(session, user_id)
+            product = self._find_product(session, product_id, lock_for_update=session.is_mysql)
+            if product is None:
+                raise NotFoundError("error.product_not_found")
+
+            key_rows = self._select_available_keys(
+                session,
+                int(product["id"]),
+                quantity,
+                lock_for_update=session.is_mysql,
             )
             available_count = len(key_rows)
             if available_count < quantity:
@@ -418,7 +500,7 @@ class StoreService:
                     available=available_count,
                 )
 
-            user = session.fetchone("SELECT balance FROM users WHERE user_id = %s", (user_id,))
+            user = self._get_user_balance_row(session, user_id, lock_for_update=session.is_mysql)
             if user is None:
                 raise NotFoundError("error.user_not_found")
 
@@ -464,6 +546,57 @@ class StoreService:
                 "key_contents": [str(row["key_content"]) for row in key_rows],
             }
 
+    def refund_product_key(self, actor_user_id: str, user_id: str, key_content: str) -> dict[str, int | str]:
+        now = int(time.time())
+        with self.database.transaction() as session:
+            self._ensure_user(session, user_id)
+            user = self._get_user_balance_row(session, user_id, lock_for_update=session.is_mysql)
+            if user is None:
+                raise NotFoundError("error.user_not_found")
+
+            refund_row = self._find_sold_key(
+                session,
+                user_id,
+                key_content,
+                lock_for_update=session.is_mysql,
+            )
+            if refund_row is None:
+                raise NotFoundError("error.refund_target_not_found")
+            if int(refund_row["is_void"] or 0) == 1:
+                raise StoreError("error.refund_already_processed")
+
+            refund_amount = int(refund_row["price"])
+            balance_after = int(user["balance"]) + refund_amount
+            session.execute(
+                "UPDATE users SET balance = %s, updated_at = %s WHERE user_id = %s",
+                (balance_after, now, user_id),
+            )
+            session.execute(
+                """
+                UPDATE product_keys
+                SET is_void = 1, void_reason = %s, refunded_at = %s, refunded_by = %s
+                WHERE id = %s
+                """,
+                ("refunded", now, actor_user_id, int(refund_row["id"])),
+            )
+            self._insert_transaction(
+                session,
+                user_id,
+                "refund",
+                refund_amount,
+                balance_after,
+                f"refund:key:{refund_row['id']}",
+                now,
+            )
+            return {
+                "user_id": user_id,
+                "product_id": int(refund_row["product_id"]),
+                "product_name": str(refund_row["product_name"]),
+                "refund_amount": refund_amount,
+                "balance_after": balance_after,
+                "key_content": str(refund_row["key_content"]),
+            }
+
     def _ensure_user(self, session, user_id: str) -> None:
         now = int(time.time())
         existing = session.fetchone("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
@@ -476,13 +609,79 @@ class StoreService:
                 (user_id, 0, now, now),
             )
 
-    def _find_product(self, session, product_id: str) -> dict[str, int | str] | None:
+    def _find_product(self, session, product_id: str, *, lock_for_update: bool = False) -> dict[str, int | str] | None:
         if not product_id.isdigit():
             return None
-        return session.fetchone(
-            "SELECT id, name, description FROM products WHERE id = %s",
-            (int(product_id),),
+        sql = "SELECT id, name, description FROM products WHERE id = %s"
+        if lock_for_update and session.is_mysql:
+            sql += " FOR UPDATE"
+        return session.fetchone(sql, (int(product_id),))
+
+    def _get_user_balance_row(self, session, user_id: str, *, lock_for_update: bool = False) -> dict[str, int] | None:
+        sql = "SELECT balance FROM users WHERE user_id = %s"
+        if lock_for_update and session.is_mysql:
+            sql += " FOR UPDATE"
+        return session.fetchone(sql, (user_id,))
+
+    def _count_available_product_keys(self, session, product_id: int) -> int:
+        row = session.fetchone(
+            """
+            SELECT COUNT(*) AS stock
+            FROM product_keys
+            WHERE product_id = %s AND is_sold = 0 AND COALESCE(is_void, 0) = 0
+            """,
+            (product_id,),
         )
+        if row is None:
+            return 0
+        return int(row["stock"] or 0)
+
+    def _select_available_keys(self, session, product_id: int, quantity: int, *, lock_for_update: bool) -> list[dict[str, int | str]]:
+        sql = """
+            SELECT id, key_content, price
+            FROM product_keys
+            WHERE product_id = %s AND is_sold = 0 AND COALESCE(is_void, 0) = 0
+            ORDER BY id ASC
+            LIMIT %s
+        """
+        if lock_for_update and session.is_mysql:
+            sql += " FOR UPDATE"
+        return session.fetchall(sql, (product_id, quantity))
+
+    def _find_sold_key(self, session, user_id: str, key_content: str, *, lock_for_update: bool) -> dict[str, int | str] | None:
+        sql = """
+            SELECT
+                pk.id,
+                pk.product_id,
+                pk.key_content,
+                pk.price,
+                pk.is_void,
+                p.name AS product_name
+            FROM product_keys pk
+            INNER JOIN products p ON p.id = pk.product_id
+            WHERE pk.sold_to = %s AND pk.key_content = %s AND pk.is_sold = 1
+        """
+        if lock_for_update and session.is_mysql:
+            sql += " FOR UPDATE"
+        return session.fetchone(sql, (user_id, key_content))
+
+    def _pop_product_subscriptions(self, session, product_id: int) -> list[str]:
+        rows = session.fetchall(
+            """
+            SELECT user_id
+            FROM product_subscriptions
+            WHERE product_id = %s
+            ORDER BY id ASC
+            """,
+            (product_id,),
+        )
+        if not rows:
+            return []
+        session.execute(
+            "DELETE FROM product_subscriptions WHERE product_id = %s",
+            (product_id,),
+        )
+        return [str(row["user_id"]) for row in rows]
 
     def _get_existing_product_keys(self, session, key_contents: list[str]) -> set[str]:
         existing_keys: set[str] = set()

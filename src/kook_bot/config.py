@@ -73,6 +73,12 @@ class Settings:
     log_events: bool = False
     log_commands: bool = False
     log_command_status: bool = False
+    log_imports: bool = False
+    import_web_enabled: bool = False
+    import_web_host: str = "127.0.0.1"
+    import_web_port: int = 18080
+    import_web_base_url: str = "http://127.0.0.1:18080"
+    import_web_ttl_seconds: int = 600
     log_to_file: bool = True
     log_dir: str = "logs"
     log_file: str = "kook-bot.log"
@@ -110,6 +116,13 @@ class Settings:
             log_events=_env_bool("KOOK_LOG_EVENTS"),
             log_commands=_env_bool("KOOK_LOG_COMMANDS"),
             log_command_status=_env_bool("KOOK_LOG_COMMAND_STATUS"),
+            log_imports=_env_bool("KOOK_LOG_IMPORTS"),
+            import_web_enabled=_env_bool("KOOK_IMPORT_WEB_ENABLED"),
+            import_web_host=os.getenv("KOOK_IMPORT_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1",
+            import_web_port=_env_int("KOOK_IMPORT_WEB_PORT", 18080),
+            import_web_base_url=os.getenv("KOOK_IMPORT_WEB_BASE_URL", "http://127.0.0.1:18080").strip()
+            or "http://127.0.0.1:18080",
+            import_web_ttl_seconds=max(30, _env_int("KOOK_IMPORT_WEB_TTL_SECONDS", 600)),
             log_to_file=_env_bool("KOOK_LOG_TO_FILE", default=True),
             log_dir=os.getenv("KOOK_LOG_DIR", "logs").strip() or "logs",
             log_file=os.getenv("KOOK_LOG_FILE", "kook-bot.log").strip() or "kook-bot.log",

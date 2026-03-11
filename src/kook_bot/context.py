@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -90,7 +91,99 @@ class MessageEvent:
                     "file_type": str(item.get("file_type", "")),
                 }
             )
+
+        # KOOK 的文件类消息不一定把附件放在 extra.attachments 里，
+        # 有些事件本身就是一个文件消息，这里补一个兜底提取。
+        if not items and self.message_type in {2, 3, 4, 8}:
+            content_url = str(self.raw_event.get("content", "")).strip()
+            attachment_name = str(extra.get("name") or extra.get("file_name") or payload_name_from_url(content_url))
+            attachment_type = str(extra.get("type", ""))
+            attachment_file_type = str(extra.get("file_type") or suffix_from_name(attachment_name))
+            if content_url:
+                items.append(
+                    {
+                        "type": attachment_type,
+                        "name": attachment_name,
+                        "url": content_url,
+                        "file_type": attachment_file_type,
+                    }
+                )
+
+        # 某些 KOOK 客户端会把上传文件包装成卡片消息，文件链接藏在 content JSON 里。
+        if not items and self.message_type == 10:
+            items.extend(extract_card_attachments(self.raw_event.get("content", "")))
         return tuple(items)
+
+
+def payload_name_from_url(url: str) -> str:
+    if not url:
+        return ""
+    normalized = url.split("?", 1)[0].rstrip("/")
+    if "/" not in normalized:
+        return normalized
+    return normalized.rsplit("/", 1)[-1]
+
+
+def suffix_from_name(name: str) -> str:
+    if "." not in name:
+        return ""
+    return name.rsplit(".", 1)[-1].lower()
+
+
+def extract_card_attachments(content: object) -> list[dict[str, str]]:
+    if not isinstance(content, str) or not content.strip():
+        return []
+
+    try:
+        payload = json.loads(content)
+    except ValueError:
+        return []
+
+    results: list[dict[str, str]] = []
+    seen_urls: set[str] = set()
+    stack: list[object] = [payload]
+
+    while stack:
+        current = stack.pop()
+        if isinstance(current, dict):
+            url_candidates = [
+                current.get("url"),
+                current.get("src"),
+                current.get("value"),
+            ]
+            attachment_name = str(
+                current.get("name")
+                or current.get("title")
+                or current.get("file_name")
+                or current.get("text")
+                or ""
+            ).strip()
+            attachment_type = str(current.get("type", "")).strip()
+            for candidate in url_candidates:
+                if not isinstance(candidate, str):
+                    continue
+                url = candidate.strip()
+                if not url or url in seen_urls or not is_supported_file_url(url):
+                    continue
+                seen_urls.add(url)
+                inferred_name = attachment_name or payload_name_from_url(url)
+                results.append(
+                    {
+                        "type": attachment_type,
+                        "name": inferred_name,
+                        "url": url,
+                        "file_type": suffix_from_name(inferred_name) or suffix_from_name(payload_name_from_url(url)),
+                    }
+                )
+            stack.extend(current.values())
+        elif isinstance(current, list):
+            stack.extend(current)
+    return results
+
+
+def is_supported_file_url(url: str) -> bool:
+    lower_url = url.lower()
+    return lower_url.endswith(".txt") or lower_url.endswith(".csv") or ".txt?" in lower_url or ".csv?" in lower_url
 
 
 @dataclass(slots=True)

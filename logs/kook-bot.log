@@ -151,3 +151,192 @@ AttributeError: 'StoreService' object has no attribute 'export_recharge_cards'
 19:03:09 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
 19:03:09 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4UEJoQlhxcjBQSTg5Vm1iTmd2R1ExUWZuY3ErTUFwYXhicE9HOVJpODJsZ3ozNUsvdFRsNm1PWWpwNVU1YkxLbXl1TUFqNHFCU2U2WStQQXozQ2dJdzgvbnV0Z203L1NnNnZmZmVJL056bHNkQnFuYXNnOENlQTAxU1dVd2RnYStRPT0=
 19:03:10 INFO [kook_bot.gateway] connected session_id=b1740527-593b-473d-b541-10fb5c9830ad
+19:07:08 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4UFVHNThaR01iWWNaR0JOTVI5cDk3K2VEM3ZsZnhDMUlOeFhMblE4U2lCYUtnQnZLUmxRd2s0ZVdTNHZmbXA1WDQ3eXlvOGQxQzdMZGYzMXpLOW5oalNJS3IyWS9mN2cxM3NDL3pUeGtJOTFWL0QyT0FKb2c2cGYvSkcrcXZPdXhBPT0=
+19:07:08 INFO [kook_bot.gateway] connected session_id=4f07024d-983d-459b-a93a-69040c9e84ca
+19:08:15 WARNING [kook_bot.gateway] disconnected: Gateway requested reconnect: {'code': 40108, 'err': 'Invalid SN'}
+19:08:17 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4T1M0SlpybDhMLzdkYXZqSk5NYjh2Yll5ZzU3b09kYmNTQzlXWU9yZThISGkvRXhldklTY25xWXZ1c2xpK3RwbUdsNnFKTzhjeDR6YVk4RmhwdGVPTnIvL3Z2dUFUNFpEeWQ1Z3crUlYwNjJHa2EyTk9EbTdrWWVDbUZsdWdoaWRBPT0=
+19:08:17 INFO [kook_bot.gateway] connected session_id=40ab24b3-5891-474f-a759-a0953735188e
+12:04:31 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:04:31 INFO [kook_bot.database] database initialized backend=sqlite
+12:04:31 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:04:31 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:04:31 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4S0tpdTAvOW9TTUNCZHpYNktnWjNBZ2MwM00yOHVhTTVmYlpIS290Qkk2b3orRzZxaVg1NW83dk1UNlBRekhyZEJNVDhEbTlWSTFIK2d3TGhqYk84WDBhSEVwQzhJRmk1MGY2dHdWOU0rblNaWjZBU3RXUTZ5RGhJTTZlRHljUjFRPT0=
+12:04:32 INFO [kook_bot.gateway] connected session_id=5f9b2fe1-db37-4fc1-afea-725cee890c91
+12:06:37 INFO [kook_bot.gateway] gateway shutdown requested
+12:06:37 INFO [kook_bot.bot] shutdown requested
+12:06:37 INFO [kook_bot.bot] stopped by user
+12:06:38 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=4760888878941680 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:06:38 INFO [kook_bot.database] database initialized backend=sqlite
+12:06:38 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:06:38 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:06:38 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4QW1QUSsrOXFwckxQZzEzTVlSZ3J4disrbHpMcVRBNlg3SlpuSGlqSWxyWFAvdm1uT1pjbE9OTzYwWE5kZjVralh6ejdZRUhWTjY3Mmt1ZGxnMW0yRDRyUU4xdzlnSHk5eTZYRzVpcVl2TXVtOWZXemdxeUxNQk54NnJkb005TzN3PT0=
+12:06:38 INFO [kook_bot.gateway] connected session_id=bb49cc0d-aaa6-4e57-95ca-adc037d5b30a
+12:06:43 INFO [kook_bot.bot] import pending created author_id=2744428583 product_id=1 price=100 channel_type=GROUP target_id=7382444605314930 chat_code= expires_at=1773202033
+12:07:14 INFO [kook_bot.gateway] gateway shutdown requested
+12:07:14 INFO [kook_bot.bot] shutdown requested
+12:07:14 INFO [kook_bot.bot] stopped by user
+12:07:15 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:07:15 INFO [kook_bot.database] database initialized backend=sqlite
+12:07:15 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:07:15 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:07:16 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4TEtZYlNmbzEwa1lFemcxV1VOcDE1emY4TW9YMmZNRzdIVnUyMkZVV0RBaUV4alJQa3hkK2ZTZldyN0VWZTNiWCtBRVZyMWhxLzlXNjdaSUZtU3JYeGtnb3ZRdkVEYmxpRTUrYU5FY2V0L1NFdk54R04zTHZVTGpudWkxbDMvSXRBPT0=
+12:07:16 INFO [kook_bot.gateway] connected session_id=c346813f-73e5-4767-b00e-4f7e5b9c76c8
+12:08:05 INFO [kook_bot.gateway] gateway shutdown requested
+12:08:05 INFO [kook_bot.bot] shutdown requested
+12:08:05 INFO [kook_bot.bot] stopped by user
+12:08:12 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:08:12 INFO [kook_bot.database] database initialized backend=sqlite
+12:08:12 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:08:12 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:08:13 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4SzRIT0docHh3SkVHQ3haS0U1dkJxTEpDTTd2RUhpMWZlNGs1dTZIQU1CT0VmVEpHZTFFcmczVWk2M280ZEZZYnVJME5YdU0xMUZhSWhYelVXNVc5bGlPZnpNcXNPdjhKQmhQSVlxVEFQNFlERjloVlJMNktUb2pzR0VGbjFEY0xRPT0=
+12:08:13 INFO [kook_bot.gateway] connected session_id=118eba85-58b1-4152-92d9-d07d65f4fd13
+12:08:18 INFO [kook_bot.bot] import pending created author_id=2744428583 product_id=1 price=100 channel_type=GROUP target_id=7382444605314930 chat_code= expires_at=1773202128
+12:08:23 INFO [kook_bot.bot] import pending event ignored author_id=2744428583 msg_id=ff562ebd-626e-41f4-a470-8d3e9435fb0c message_type=10 attachment_count=0 raw_keys=['author', 'channel_name', 'channel_type', 'code', 'editable', 'emoji', 'guild_id', 'guild_type', 'kmarkdown', 'last_msg_content', 'mention', 'mention_all', 'mention_here', 'mention_no_at', 'mention_roles', 'nav_channels', 'preview_content', 'preview_content_search', 'send_msg_device', 'type', 'visible_only']
+12:09:54 INFO [kook_bot.gateway] gateway shutdown requested
+12:09:54 INFO [kook_bot.bot] shutdown requested
+12:09:54 INFO [kook_bot.bot] stopped by user
+12:09:55 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:09:55 INFO [kook_bot.database] database initialized backend=sqlite
+12:09:55 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:09:55 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:09:56 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4TEJxbnZZZytpZkZEeEdJUU1zK1R1WG5ycS9qaVRXeUhKeFpWUk05dUo0TmJoNTZJQ3dHS1libFVGZ1hoeG8zWnZUZ3NwZFNVMW9sL0hQMWROSUx1QlcwNWxEenNsVy8raE1BT2RvNWJEbmxyNC9hd1ZVdGkwUWNOOHI5TUhqV2J3PT0=
+12:09:56 INFO [kook_bot.gateway] connected session_id=4a30c82b-0c35-48aa-bde6-db25027dc582
+12:09:59 INFO [kook_bot.bot] import pending created author_id=2744428583 product_id=1 price=100 channel_type=GROUP target_id=7382444605314930 chat_code= expires_at=1773202229
+12:10:08 INFO [kook_bot.bot] import upload received author_id=2744428583 channel_type=GROUP target_id=7382444605314930 chat_code= attachment_count=1 attachment_names=['新建 文本文档 (3).txt'] msg_id=0e8baa3d-fcc4-4ff4-b40f-531880a3aad9
+12:10:08 INFO [kook_bot.bot] import download start author_id=2744428583 product_id=1 attachment_name=新建 文本文档 (3).txt url=https://img.kookapp.cn/attachments/2026-03/11/69b0e4537d442.txt
+12:10:08 INFO [kook_bot.bot] import download success author_id=2744428583 product_id=1 bytes=312 attachment_name=新建 文本文档 (3).txt
+12:10:08 INFO [kook_bot.bot] import decode success author_id=2744428583 product_id=1 lines=24 preview=['12313132213', '12313132213', '12313132213']
+12:10:08 INFO [kook_bot.bot] import store success author_id=2744428583 product_id=1 parsed_total=24 inserted_count=1 skipped_duplicates=23 restock_notify_count=0
+12:10:08 INFO [kook_bot.bot] restock notify skipped product_id=1 reason=no_subscribers
+12:18:27 INFO [kook_bot.gateway] gateway shutdown requested
+12:18:27 INFO [kook_bot.bot] shutdown requested
+12:18:27 INFO [kook_bot.bot] stopped by user
+12:18:28 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=False import_web_host=127.0.0.1 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:18:28 INFO [kook_bot.database] database initialized backend=sqlite
+12:18:28 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:18:28 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:18:28 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4R3BmRFlVWndtOCs2UjhBZ1NaUDJFRE85bjhHKzUyT2dhWVpqbW5CNkx6L0dIYU1XcmJqbVovWnczVWhCa0FIV2NnR2hYcUh5aUUvSHVPVEswUFFZelhyNk03RkZpKzFqOXgzMVZQQU1nMGRhR2NjelI4Tmh6NnlYbXFTUnFnZHBnPT0=
+12:18:29 INFO [kook_bot.gateway] connected session_id=23ee1085-ca39-41f1-824b-fa7186b0328c
+12:19:07 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'store_admin', 'store_user')
+12:19:38 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:20:43 INFO [kook_bot.gateway] gateway shutdown requested
+12:20:43 INFO [kook_bot.bot] shutdown requested
+12:20:43 INFO [kook_bot.bot] stopped by user
+12:20:44 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=127.0.0.1 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:20:44 INFO [kook_bot.database] database initialized backend=sqlite
+12:20:44 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:20:44 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:20:44 INFO [kook_bot.bot] import web server listening host=127.0.0.1 port=18080 base_url=http://127.0.0.1:18080
+12:20:44 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4TU8xVkVuUEx2K2FvREZ6OGZKK0VLU1hCa3BPL28rdUlQTmxGWStVcExwRDlWVUNZbGtadHZNU1E4WHhpRUptTEhNdmIrZzllL25FUkZlczNaeVg4RGEwNUtvSkR5ekcxbmlMc1h1SWQxWWEyb0xNYW1NWU50dnNma0lIUGlqQzhnPT0=
+12:20:44 INFO [kook_bot.gateway] connected session_id=2b110a42-d6e9-4ce8-8ede-5bd45ab92096
+12:20:47 ERROR [kook_bot.bot] command failed name='help' msg_id=a355f7ba-460c-4a67-b5b9-977a68a6a0fa
+Traceback (most recent call last):
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\bot.py", line 829, in _dispatch_message
+    await spec.handler(context)
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\command_modules\help.py", line 26, in help_command
+    await ctx.reply_card(_build_help_cards(ctx, visible_commands))
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\context.py", line 237, in reply_card
+    await self.bot.reply_card_to_event(self.event, cards)
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\bot.py", line 314, in reply_card_to_event
+    return await self.send_channel_card(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\bot.py", line 283, in send_channel_card
+    return await self.send_channel_message(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\bot.py", line 224, in send_channel_message
+    result = await self._http.create_channel_message(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\kook_http.py", line 50, in create_channel_message
+    return await self._request("POST", "/message/create", json=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Dev\python\KOOK\KOOK-BOT\src\kook_bot\kook_http.py", line 138, in _request
+    raise KookApiError(f"KOOK API request failed: code={code}, message={message}")
+kook_bot.kook_http.KookApiError: KOOK API request failed: code=40000, message=卡片消息json没有通过验证或者不存在
+12:20:58 INFO [kook_bot.gateway] gateway shutdown requested
+12:20:58 INFO [kook_bot.bot] shutdown requested
+12:20:58 INFO [kook_bot.bot] stopped by user
+12:27:46 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=127.0.0.1 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:27:46 INFO [kook_bot.database] database initialized backend=sqlite
+12:27:46 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:27:46 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:27:46 INFO [kook_bot.bot] import web server listening host=127.0.0.1 port=18080 base_url=http://127.0.0.1:18080
+12:27:47 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4S0J2UVdzOHlPTXVFVEFVa2EyOEd5L2VmaXphb2lVS0JMdFNpNXI2ZUliNGs2N3lEUC9FSDFid3pxN3dpdEJrMVF5YTlSNjJPSXlobmkwUS9qZit3Qm1wMURwR1hIY3Z3cFc0MnB5MEFQOGd1dFNrWFBpL0JET294WFh5ay82OXhRPT0=
+12:27:47 INFO [kook_bot.gateway] connected session_id=574084c5-4925-4d4e-81e4-1d9cb169cb81
+12:27:56 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:27:56 INFO [kook_bot.bot] import pending created author_id=2744428583 product_id=1 price=10000 mode=web channel_type=GROUP target_id=7382444605314930 chat_code= upload_id=BeF9tL-NcVVqt6onuvzl1JAS expires_at=1773203876
+12:28:06 INFO [kook_bot.bot] import web page request upload_id=BeF9tL-NcVVqt6onuvzl1JAS remote=127.0.0.1
+12:28:06 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:28:06 +0800] "GET /import/BeF9tL-NcVVqt6onuvzl1JAS HTTP/1.1" 200 1180 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:28:06 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:28:06 +0800] "GET /favicon.ico HTTP/1.1" 404 175 "http://127.0.0.1:18080/import/BeF9tL-NcVVqt6onuvzl1JAS" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:28:21 INFO [kook_bot.bot] import web submit upload_id=BeF9tL-NcVVqt6onuvzl1JAS remote=127.0.0.1
+12:28:21 INFO [kook_bot.bot] import bytes processing author_id=2744428583 product_id=1 mode=web source_kind=web source_name=新建 文本文档.txt bytes=1295
+12:28:21 INFO [kook_bot.bot] import decode success author_id=2744428583 product_id=1 lines=52 preview=['操作,命令 / 快捷键', '新建会话,tmux new -s <会话名称> (例如: tmux new -s atm9)', '分离会话,Ctrl + b 之后按 d (程序会在后台继续运行)']
+12:28:21 INFO [kook_bot.bot] import store success author_id=2744428583 product_id=1 parsed_total=42 inserted_count=42 skipped_duplicates=0 restock_notify_count=0 source_kind=web
+12:28:21 INFO [kook_bot.bot] restock notify skipped product_id=1 reason=no_subscribers
+12:28:21 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:28:21 +0800] "POST /import/BeF9tL-NcVVqt6onuvzl1JAS HTTP/1.1" 200 912 "http://127.0.0.1:18080/import/BeF9tL-NcVVqt6onuvzl1JAS" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:29:13 INFO [kook_bot.gateway] gateway shutdown requested
+12:29:13 INFO [kook_bot.bot] shutdown requested
+12:29:13 INFO [kook_bot.bot] stopped by user
+12:29:14 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=127.0.0.1 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:29:14 INFO [kook_bot.database] database initialized backend=sqlite
+12:29:14 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:29:14 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:29:14 INFO [kook_bot.bot] import web server listening host=127.0.0.1 port=18080 base_url=http://127.0.0.1:18080
+12:29:15 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4RHpweDdPeHpFRTBEcEh3dVgyM0dMeDc0bzNvc2VHY2J1LzhDd2x3eitISWFnZngweVNUWTdRR3c3K01CVkZoQjFJQnNuQmtaejJObnltK0ZPTmhPNTczVDRCUWc3SzZBRTlnS0t1eDlpUlhNaWNXeXNybThPUloxUCtQWHhTUHVBPT0=
+12:29:15 INFO [kook_bot.gateway] connected session_id=154c82aa-d2f7-4867-8b82-0755d7f632b9
+12:31:08 INFO [kook_bot.gateway] gateway shutdown requested
+12:31:08 INFO [kook_bot.bot] shutdown requested
+12:31:08 INFO [kook_bot.bot] stopped by user
+12:31:10 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=127.0.0.1 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:31:10 INFO [kook_bot.database] database initialized backend=sqlite
+12:31:10 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:31:10 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:31:10 INFO [kook_bot.bot] import web server listening host=127.0.0.1 port=18080 base_url=http://127.0.0.1:18080
+12:31:11 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4T2FzSCtZT0pBWFEzazJOUDZvTDUyY3RWdkdjalJpZzZjY0VVRTFLdFVHVmN4Z2swS3o3cFlDd3ZOSmR5b2xrVGExcEpNRnc4UjIyRU9PQVJyaG1KNVpIY2JZRUFzWWJDd2V1Qnh0TUR4SFZNMjdveGhrRXV6c3FTN3ZGM0x4TGlnPT0=
+12:31:11 INFO [kook_bot.gateway] connected session_id=7a9477fb-a58b-47ba-84da-77cad5a32835
+12:31:20 INFO [kook_bot.bot] import pending created author_id=2744428583 product_id=1 price=1011000 mode=web channel_type=GROUP target_id=7382444605314930 chat_code= upload_id=5Yd1HeV4co6v1WDt3vOuUS-u expires_at=1773204080
+12:31:29 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:29 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:29 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:32 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:32 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:32 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:32 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:32 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:32 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:32 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:32 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:32 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:32 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:32 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:32 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:33 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:33 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:33 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:33 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:33 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:33 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:33 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:33 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:33 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:33 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:33 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:33 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:34 INFO [kook_bot.bot] import web page request upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:34 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:34 +0800] "GET /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 1210 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:31:44 INFO [kook_bot.bot] import web submit upload_id=5Yd1HeV4co6v1WDt3vOuUS-u remote=127.0.0.1
+12:31:44 INFO [kook_bot.bot] import bytes processing author_id=2744428583 product_id=1 mode=web source_kind=web source_name=新建 文本文档.txt bytes=1295
+12:31:44 INFO [kook_bot.bot] import decode success author_id=2744428583 product_id=1 lines=52 preview=['操作,命令 / 快捷键', '新建会话,tmux new -s <会话名称> (例如: tmux new -s atm9)', '分离会话,Ctrl + b 之后按 d (程序会在后台继续运行)']
+12:31:44 INFO [kook_bot.bot] import store success author_id=2744428583 product_id=1 parsed_total=42 inserted_count=0 skipped_duplicates=42 restock_notify_count=0 source_kind=web
+12:31:44 INFO [kook_bot.bot] restock notify skipped product_id=1 reason=no_subscribers
+12:31:44 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:31:44 +0800] "POST /import/5Yd1HeV4co6v1WDt3vOuUS-u HTTP/1.1" 200 909 "http://127.0.0.1:18080/import/5Yd1HeV4co6v1WDt3vOuUS-u" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:32:27 INFO [kook_bot.gateway] gateway shutdown requested
+12:32:27 INFO [kook_bot.bot] shutdown requested
+12:32:27 INFO [kook_bot.bot] stopped by user
+12:32:28 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO log_http=False log_events=False log_commands=False log_command_status=False log_imports=True locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=127.0.0.1 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+12:32:28 INFO [kook_bot.database] database initialized backend=sqlite
+12:32:28 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+12:32:28 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'store_admin', 'store_user')
+12:32:28 INFO [kook_bot.bot] import web server listening host=127.0.0.1 port=18080 base_url=http://127.0.0.1:18080
+12:32:29 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4SzlzakNyc0txRFhiSGhDbXVMY29rMlBHSkVHSVZqZUV1T2s2NVJFRXNzb25KSXJ4S0M0N2FSR1ZYRVRQdFRiNTAxVFcvRTB2bDMvVy9xd1RlL2hwbHJGT3c1MC9ERlIweWgwZ2NkaGdCdDRickUvUDE5M2lJa1FUNGl2K2pwblZRPT0=
+12:32:29 INFO [kook_bot.gateway] connected session_id=58591d2d-dfd9-49fb-8678-15447ce20202
+12:32:43 INFO [kook_bot.bot] import pending created author_id=2744428583 product_id=1 price=10000 mode=web channel_type=GROUP target_id=7382444605314930 chat_code= upload_id=4VjJ0fs18XGCS6gPgJ2ESdzj expires_at=1773204163
+12:32:53 INFO [kook_bot.bot] import web page request upload_id=4VjJ0fs18XGCS6gPgJ2ESdzj remote=127.0.0.1
+12:32:53 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:32:53 +0800] "GET /import/4VjJ0fs18XGCS6gPgJ2ESdzj HTTP/1.1" 200 1208 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+12:33:00 INFO [kook_bot.bot] import web submit upload_id=4VjJ0fs18XGCS6gPgJ2ESdzj remote=127.0.0.1
+12:33:00 INFO [kook_bot.bot] import bytes processing author_id=2744428583 product_id=1 mode=web source_kind=web source_name=新建 文本文档 (2).txt bytes=48
+12:33:00 INFO [kook_bot.bot] import decode success author_id=2744428583 product_id=1 lines=2 preview=['耳机 科特尔得龙 HW351N', '话机 Fanvil X1s']
+12:33:00 INFO [kook_bot.bot] import store success author_id=2744428583 product_id=1 parsed_total=2 inserted_count=2 skipped_duplicates=0 restock_notify_count=0 source_kind=web
+12:33:00 INFO [kook_bot.bot] restock notify skipped product_id=1 reason=no_subscribers
+12:33:00 INFO [kook_bot.bot] import web notify success author_id=2744428583 product_id=1 inserted_count=2
+12:33:00 INFO [aiohttp.access] 127.0.0.1 [11/Mar/2026:12:33:00 +0800] "POST /import/4VjJ0fs18XGCS6gPgJ2ESdzj HTTP/1.1" 200 1202 "http://127.0.0.1:18080/import/4VjJ0fs18XGCS6gPgJ2ESdzj" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
