@@ -43,6 +43,7 @@ class StoreService:
         self.permissions.initialize()
 
     def get_profile(self, user_id: str) -> dict[str, int | str]:
+        role = self.permissions.get_role(user_id)
         with self.database.transaction() as session:
             self._ensure_user(session, user_id)
             user = session.fetchone("SELECT user_id, balance, created_at, updated_at FROM users WHERE user_id = %s", (user_id,))
@@ -51,7 +52,7 @@ class StoreService:
             return {
                 "user_id": str(user["user_id"]),
                 "balance": int(user["balance"]),
-                "role": self.permissions.get_role(user_id),
+                "role": role,
                 "created_at": int(user["created_at"]),
                 "updated_at": int(user["updated_at"]),
             }
