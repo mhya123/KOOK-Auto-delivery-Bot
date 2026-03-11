@@ -1,5 +1,8 @@
 # KOOK Auto-delivery Bot
 
+- English: `README.md`
+- 中文: [README.zh-CN.md](/README.zh-CN.md)
+
 ## Overview
 
 This project is a KOOK bot for:
