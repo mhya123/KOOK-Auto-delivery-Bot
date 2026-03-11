@@ -630,3 +630,20 @@ kook_bot.kook_http.KookApiError: KOOK API request failed: code=40000, message=Âç
 14:16:36 INFO [kook_bot.gateway] gateway shutdown requested
 14:16:36 INFO [kook_bot.bot] shutdown requested
 14:16:36 INFO [kook_bot.bot] stopped by user
+14:35:31 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO recharge_card_format='MhYa123-{random}' recharge_card_random_length=16 payment_enabled=True payment_api_base_url=https://7pay.top/ payment_base_url=http://kook.mahiro.work:18080 log_http=False log_events=False log_commands=False log_command_status=False log_imports=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=0.0.0.0 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+14:35:31 INFO [kook_bot.database] database initialized backend=sqlite
+14:35:31 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+14:35:31 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'payment', 'payment_admin', 'store_admin', 'store_user')
+14:35:31 INFO [kook_bot.bot] internal web server listening host=0.0.0.0 port=18080 import_base_url=http://127.0.0.1:18080 payment_base_url=http://kook.mahiro.work:18080
+14:35:31 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4QmluQ09CZXA1bWtWOUx6ZXBiK2lCUGF3dkVEVHN0UVNmK3JuRGVHWXNZZFNpU0ZwZkFISUNqMUpVRnZsREYybDJJcDZMeHlUaFFTZWN2V3ZWeVFtZDZKejRUYWJqK1NpZmVzL3RXL21mQU1CMzBQdTdwN3QvLzU0a1kvL1VrTzFBPT0=
+14:35:31 INFO [kook_bot.gateway] connected session_id=a2e2d91e-e420-4681-af79-43dec1d6e986
+14:37:43 INFO [kook_bot.gateway] gateway shutdown requested
+14:37:43 INFO [kook_bot.bot] shutdown requested
+14:37:43 INFO [kook_bot.bot] stopped by user
+14:37:44 INFO [kook_bot.bot] starting prefix='/' api_base_url=https://www.kookapp.cn/api/v3 db_backend=sqlite super_admin_ids=('2744428583',) log_level=INFO recharge_card_format='MhYa123-{random}' recharge_card_random_length=16 payment_enabled=True payment_api_base_url=https://7pay.top/ payment_base_url=http://kook.mahiro.work:18080 log_http=False log_events=False log_commands=False log_command_status=False log_imports=False locale=zh-CN locale_dir=locales admin_command_channel_id=7382444605314930 log_channel_id=8017881393570156 import_web_enabled=True import_web_host=0.0.0.0 import_web_port=18080 import_web_base_url=http://127.0.0.1:18080 import_web_ttl_seconds=600 log_to_file=True log_dir=logs log_file=kook-bot.log log_max_bytes=5242880 log_backup_count=7
+14:37:44 INFO [kook_bot.database] database initialized backend=sqlite
+14:37:45 INFO [kook_bot.permissions] permission service initialized super_admin_ids=('2744428583',)
+14:37:45 INFO [kook_bot.command_loader] command modules loaded names=('account', 'admin', 'hello', 'help', 'payment', 'payment_admin', 'store_admin', 'store_user')
+14:37:45 INFO [kook_bot.bot] internal web server listening host=0.0.0.0 port=18080 import_base_url=http://127.0.0.1:18080 payment_base_url=http://kook.mahiro.work:18080
+14:37:46 INFO [kook_bot.gateway] connecting url=wss://nws.kaiheila.cn/gateway?compress=0&token=eEZ3VUZzdDJuVjhIOFNtUkpNUmo4QUpINjRMdDRaaWxwb2RwcjZaUzIybEFXTXgwdFZiZmhsOGNwQlhBTHc3S1R2ak9XV245R3BZYm5YOVlXVlluUFVab3E3ZVdnN3lEaVBhQk9BZURBTnJneGZXbW91bmJCYlZzL2ZzN3RjV0NtSFhZejNVYVpid2pXcnBFWXRmL0VnPT0=
+14:37:46 INFO [kook_bot.gateway] connected session_id=ebd9a72a-5166-40a9-a47d-1662ca5f33f1

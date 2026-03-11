@@ -219,6 +219,17 @@ def _build_product_cards(ctx: CommandContext, products: list[dict[str, object]])
                 }
             )
             modules.append(build_action_group(_build_product_buttons(ctx, product_id, stock)))
+            modules.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain-text",
+                            "content": _build_product_tip(ctx, stock),
+                        }
+                    ],
+                }
+            )
             if index != len(page) - 1:
                 modules.append({"type": "divider"})
 
@@ -281,3 +292,12 @@ def _build_product_buttons(ctx: CommandContext, product_id: int, stock: int) -> 
             )
         )
     return buttons
+
+
+def _build_product_tip(ctx: CommandContext, stock: int) -> str:
+    if stock > 1:
+        quantity = min(stock, 10)
+        return ctx.t("store.products.tip_in_stock", quantity=quantity)
+    if stock == 1:
+        return ctx.t("store.products.tip_single_stock")
+    return ctx.t("store.products.tip_out_of_stock")

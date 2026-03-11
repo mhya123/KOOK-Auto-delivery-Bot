@@ -30,6 +30,7 @@ class MessageEvent:
         author = extra.get("author") or {}
         kmarkdown = extra.get("kmarkdown") or {}
         body = extra.get("body") or {}
+        channel_type = str(payload.get("channel_type", ""))
         message_type = int(payload.get("type", 0))
         content = str(payload.get("content", ""))
         author_id = str(payload.get("author_id", ""))
@@ -40,9 +41,14 @@ class MessageEvent:
             content = str(body.get("value", "") or "")
             author = body.get("user_info") or author
             author_id = str(body.get("user_id") or author_id)
-            target_id = str(body.get("target_id") or target_id)
+            button_target_id = str(body.get("target_id") or "").strip()
+            if button_target_id:
+                target_id = button_target_id
+                channel_type = "GROUP"
+            else:
+                channel_type = "PERSON"
         return cls(
-            channel_type=str(payload.get("channel_type", "")),
+            channel_type=channel_type,
             message_type=message_type,
             target_id=target_id,
             author_id=author_id,
