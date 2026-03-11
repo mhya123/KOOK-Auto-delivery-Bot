@@ -57,6 +57,17 @@ class Settings:
     recharge_card_format: str = "RC-{random}"
     recharge_card_random_length: int = 16
     recharge_card_alphabet: str = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    payment_enabled: bool = False
+    payment_api_base_url: str = "https://pay.mxlg.cn"
+    payment_pid: str = ""
+    payment_key: str = ""
+    payment_sitename: str = "KOOK Auto-delivery Bot"
+    payment_base_url: str = ""
+    payment_notify_path: str = "/payment/notify"
+    payment_return_path: str = "/payment/return"
+    payment_allow_custom_amount: bool = False
+    payment_custom_amount_min: int = 1
+    payment_custom_amount_max: int = 100000
     locale: str = "en-US"
     locale_dir: str = "locales"
     admin_command_channel_id: str = "4760888878941680"
@@ -108,6 +119,17 @@ class Settings:
                 os.getenv("KOOK_RECHARGE_CARD_ALPHABET", "ABCDEFGHJKLMNPQRSTUVWXYZ23456789").strip()
                 or "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
             ),
+            payment_enabled=_env_bool("KOOK_PAYMENT_ENABLED"),
+            payment_api_base_url=os.getenv("KOOK_PAYMENT_API_BASE_URL", "https://pay.mxlg.cn").strip() or "https://pay.mxlg.cn",
+            payment_pid=os.getenv("KOOK_PAYMENT_PID", "").strip(),
+            payment_key=os.getenv("KOOK_PAYMENT_KEY", "").strip(),
+            payment_sitename=os.getenv("KOOK_PAYMENT_SITENAME", "KOOK Auto-delivery Bot").strip() or "KOOK Auto-delivery Bot",
+            payment_base_url=os.getenv("KOOK_PAYMENT_BASE_URL", "").strip(),
+            payment_notify_path=os.getenv("KOOK_PAYMENT_NOTIFY_PATH", "/payment/notify").strip() or "/payment/notify",
+            payment_return_path=os.getenv("KOOK_PAYMENT_RETURN_PATH", "/payment/return").strip() or "/payment/return",
+            payment_allow_custom_amount=_env_bool("KOOK_PAYMENT_ALLOW_CUSTOM_AMOUNT"),
+            payment_custom_amount_min=max(1, _env_int("KOOK_PAYMENT_CUSTOM_AMOUNT_MIN", 1)),
+            payment_custom_amount_max=max(1, _env_int("KOOK_PAYMENT_CUSTOM_AMOUNT_MAX", 100000)),
             locale=os.getenv("KOOK_LOCALE", "en-US").strip() or "en-US",
             locale_dir=os.getenv("KOOK_LOCALE_DIR", "locales").strip() or "locales",
             admin_command_channel_id=os.getenv("KOOK_ADMIN_COMMAND_CHANNEL_ID", "4760888878941680").strip(),

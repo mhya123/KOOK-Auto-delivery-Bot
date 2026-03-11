@@ -13,6 +13,7 @@
 - 用户购买后自动发货
 - 缺货订阅与补货提醒
 - 退款与卡密作废流程
+- 内置 MXLG 支付充值流程
 - `super_admin`、`admin`、`user` 三层权限控制
 - 命令模块热加载
 - 通过环境变量切换 `sqlite` 或 `mysql`
@@ -43,6 +44,8 @@
 - `/balance`
 - `/profile`
 - `/recharge <card_code>`
+- `/pay <amount> <method>`
+- `/pay_amounts`
 - `/products`
 - `/buy <product_id> [quantity]`
 - `/subscribe <product_id>`
@@ -52,6 +55,7 @@
 ### 管理员命令
 
 - `/gen_card <amount> <count>`
+- `/set_pay_amounts <amount1> <amount2> ...`
 - `/export_cards [all]`
 - `/export_keys <product_id|all>`
 - `/del_card <card_code>`
@@ -118,6 +122,14 @@ KOOK_COMMAND_PREFIX=/
 KOOK_RECHARGE_CARD_FORMAT=RC-{random}
 KOOK_RECHARGE_CARD_RANDOM_LENGTH=16
 KOOK_RECHARGE_CARD_ALPHABET=ABCDEFGHJKLMNPQRSTUVWXYZ23456789
+KOOK_PAYMENT_ENABLED=false
+KOOK_PAYMENT_API_BASE_URL=https://pay.mxlg.cn
+KOOK_PAYMENT_PID=
+KOOK_PAYMENT_KEY=
+KOOK_PAYMENT_SITENAME=KOOK Auto-delivery Bot
+KOOK_PAYMENT_BASE_URL=
+KOOK_PAYMENT_NOTIFY_PATH=/payment/notify
+KOOK_PAYMENT_RETURN_PATH=/payment/return
 KOOK_LOCALE=en-US
 KOOK_LOCALE_DIR=locales
 KOOK_ADMIN_COMMAND_CHANNEL_ID=4760888878941680
@@ -172,6 +184,45 @@ KOOK_RECHARGE_CARD_FORMAT=KM-{random}
 KOOK_RECHARGE_CARD_FORMAT=RC-{timestamp}-{random}
 KOOK_RECHARGE_CARD_FORMAT=CARD{random}
 ```
+
+## 内置支付
+
+项目现在支持接入 MXLG 内置支付，用于用户余额充值。
+
+用户可以：
+
+- 查看当前允许的充值金额
+- 选择充值金额
+- 选择支付方式：`alipay`、`qqpay`、`wxpay`
+
+管理员可以：
+
+- 通过 `/set_pay_amounts` 配置允许的充值金额
+
+需要配置这些环境变量：
+
+```env
+KOOK_PAYMENT_ENABLED=true
+KOOK_PAYMENT_API_BASE_URL=https://pay.mxlg.cn
+KOOK_PAYMENT_PID=your-pid
+KOOK_PAYMENT_KEY=your-secret-key
+KOOK_PAYMENT_SITENAME=KOOK Auto-delivery Bot
+KOOK_PAYMENT_BASE_URL=https://your-domain.example.com:18080
+KOOK_PAYMENT_NOTIFY_PATH=/payment/notify
+KOOK_PAYMENT_RETURN_PATH=/payment/return
+KOOK_PAYMENT_ALLOW_CUSTOM_AMOUNT=false
+KOOK_PAYMENT_CUSTOM_AMOUNT_MIN=1
+KOOK_PAYMENT_CUSTOM_AMOUNT_MAX=100000
+```
+
+支付流程：
+
+- 用户通过 `/pay <amount> <method>` 创建订单
+- Bot 调用 `mapi.php` 发起下单
+- 支付平台回调 `notify_url`
+- Bot 验签成功后自动给用户余额入账
+
+如果开启 `KOOK_PAYMENT_ALLOW_CUSTOM_AMOUNT=true`，用户也可以直接使用 `/pay <amount> <method>` 输入自定义金额，只要金额落在配置的最小值和最大值区间内即可。
 
 ## 安装依赖
 

@@ -86,6 +86,30 @@ SQLITE_SCHEMA_STATEMENTS = (
         created_at INTEGER NOT NULL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS payment_amount_options (
+        amount INTEGER PRIMARY KEY,
+        created_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS payment_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_no TEXT NOT NULL UNIQUE,
+        platform_trade_no TEXT,
+        user_id TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        pay_type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        create_payload TEXT,
+        notify_payload TEXT,
+        created_at INTEGER NOT NULL,
+        paid_at INTEGER,
+        updated_at INTEGER NOT NULL
+    )
+    """,
 )
 
 MYSQL_SCHEMA_STATEMENTS = (
@@ -165,6 +189,32 @@ MYSQL_SCHEMA_STATEMENTS = (
         reference VARCHAR(128),
         created_at BIGINT NOT NULL,
         INDEX idx_transactions_user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS payment_amount_options (
+        amount BIGINT PRIMARY KEY,
+        created_by VARCHAR(32),
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS payment_orders (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        order_no VARCHAR(64) NOT NULL UNIQUE,
+        platform_trade_no VARCHAR(64),
+        user_id VARCHAR(32) NOT NULL,
+        amount BIGINT NOT NULL,
+        pay_type VARCHAR(32) NOT NULL,
+        status VARCHAR(32) NOT NULL,
+        create_payload LONGTEXT,
+        notify_payload LONGTEXT,
+        created_at BIGINT NOT NULL,
+        paid_at BIGINT,
+        updated_at BIGINT NOT NULL,
+        INDEX idx_payment_orders_user_id (user_id),
+        INDEX idx_payment_orders_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """,
 )
@@ -387,6 +437,8 @@ class Database:
                 "CREATE INDEX IF NOT EXISTS idx_product_keys_is_void ON product_keys(is_void)",
                 "CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id)",
                 "CREATE INDEX IF NOT EXISTS idx_product_subscriptions_product_id ON product_subscriptions(product_id)",
+                "CREATE INDEX IF NOT EXISTS idx_payment_orders_user_id ON payment_orders(user_id)",
+                "CREATE INDEX IF NOT EXISTS idx_payment_orders_status ON payment_orders(status)",
             )
         else:
             statements = (
@@ -396,6 +448,8 @@ class Database:
                 "ALTER TABLE product_keys ADD COLUMN refunded_by VARCHAR(32)",
                 "CREATE INDEX idx_product_keys_is_void ON product_keys(is_void)",
                 "CREATE INDEX idx_product_subscriptions_product_id ON product_subscriptions(product_id)",
+                "CREATE INDEX idx_payment_orders_user_id ON payment_orders(user_id)",
+                "CREATE INDEX idx_payment_orders_status ON payment_orders(status)",
             )
 
         for statement in statements:

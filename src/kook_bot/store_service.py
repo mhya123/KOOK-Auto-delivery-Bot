@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 import time
 from dataclasses import dataclass
+from json import dumps as json_dumps, loads as json_loads
 
 from .config import Settings
 from .database import Database
@@ -168,6 +169,192 @@ class StoreService:
             )
             self._insert_transaction(session, user_id, "recharge", amount, balance_after, card_code, now)
             return {"amount": amount, "balance_after": balance_after}
+
+    def list_payment_amounts(self) -> list[int]:
+        with self.database.transaction() as session:
+            rows = session.fetchall(
+                """
+                SELECT amount
+                FROM payment_amount_options
+                ORDER BY amount ASC
+                """
+            )
+        return [int(row["amount"]) for row in rows]
+
+    def is_payment_amount_allowed(self, amount: int, allowed_amounts: list[int] | None = None) -> bool:
+        if amount <= 0:
+            return False
+
+        normalized_amounts = allowed_amounts if allowed_amounts is not None else self.list_payment_amounts()
+        if normalized_amounts and amount in normalized_amounts:
+            return True
+
+        if not self.settings.payment_allow_custom_amount:
+            return False
+
+        minimum = min(self.settings.payment_custom_amount_min, self.settings.payment_custom_amount_max)
+        maximum = max(self.settings.payment_custom_amount_min, self.settings.payment_custom_amount_max)
+        return minimum <= amount <= maximum
+
+    def replace_payment_amounts(self, actor_user_id: str, amounts: list[int]) -> list[int]:
+        normalized = sorted({int(amount) for amount in amounts if int(amount) > 0})
+        if not normalized:
+            raise StoreError("error.payment_amounts_empty")
+
+        now = int(time.time())
+        with self.database.transaction() as session:
+            session.execute("DELETE FROM payment_amount_options")
+            session.executemany(
+                """
+                INSERT INTO payment_amount_options (amount, created_by, created_at, updated_at)
+                VALUES (%s, %s, %s, %s)
+                """,
+                [(amount, actor_user_id, now, now) for amount in normalized],
+            )
+        return normalized
+
+    def create_payment_order(
+        self,
+        user_id: str,
+        *,
+        amount: int,
+        pay_type: str,
+        order_no: str,
+        create_payload: dict[str, object],
+    ) -> None:
+        now = int(time.time())
+        with self.database.transaction() as session:
+            self._ensure_user(session, user_id)
+            allowed_amounts = self._list_payment_amounts_in_session(session)
+            if not self.is_payment_amount_allowed(amount, allowed_amounts):
+                raise StoreError("error.payment_amount_not_allowed")
+            session.execute(
+                """
+                INSERT INTO payment_orders (
+                    order_no, user_id, amount, pay_type, status, create_payload, created_at, updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    order_no,
+                    user_id,
+                    amount,
+                    pay_type,
+                    "pending",
+                    json_dumps(create_payload, ensure_ascii=False),
+                    now,
+                    now,
+                ),
+            )
+
+    def get_payment_order(self, order_no: str) -> dict[str, int | str] | None:
+        with self.database.transaction() as session:
+            row = session.fetchone(
+                """
+                SELECT order_no, platform_trade_no, user_id, amount, pay_type, status, create_payload, created_at, paid_at
+                FROM payment_orders
+                WHERE order_no = %s
+                """,
+                (order_no,),
+            )
+        if row is None:
+            return None
+        return {
+            "order_no": str(row["order_no"]),
+            "platform_trade_no": str(row["platform_trade_no"] or ""),
+            "user_id": str(row["user_id"]),
+            "amount": int(row["amount"]),
+            "pay_type": str(row["pay_type"]),
+            "status": str(row["status"]),
+            "create_payload": str(row.get("create_payload") or ""),
+            "created_at": int(row["created_at"]),
+            "paid_at": int(row["paid_at"] or 0),
+        }
+
+    def get_payment_submit_payload(self, order_no: str) -> dict[str, str] | None:
+        order = self.get_payment_order(order_no)
+        if order is None:
+            return None
+        raw_payload = str(order.get("create_payload") or "").strip()
+        if not raw_payload:
+            return None
+        try:
+            payload = json_loads(raw_payload)
+        except ValueError:
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return {str(key): str(value) for key, value in payload.items()}
+
+    def complete_payment_order(
+        self,
+        *,
+        order_no: str,
+        trade_no: str,
+        amount: int,
+        pay_type: str,
+        notify_payload: dict[str, object],
+    ) -> dict[str, int | str] | None:
+        now = int(time.time())
+        with self.database.transaction() as session:
+            order = session.fetchone(
+                """
+                SELECT order_no, user_id, amount, pay_type, status
+                FROM payment_orders
+                WHERE order_no = %s
+                """,
+                (order_no,),
+            )
+            if order is None:
+                return None
+            if str(order["status"]) == "paid":
+                user = session.fetchone("SELECT balance FROM users WHERE user_id = %s", (str(order["user_id"]),))
+                return {
+                    "user_id": str(order["user_id"]),
+                    "amount": int(order["amount"]),
+                    "balance_after": int((user or {}).get("balance", 0)),
+                    "order_no": str(order["order_no"]),
+                    "trade_no": trade_no,
+                    "already_paid": True,
+                }
+
+            expected_amount = int(order["amount"])
+            if expected_amount != amount or str(order["pay_type"]) != pay_type:
+                raise StoreError("error.payment_callback_mismatch")
+
+            user = self._get_user_balance_row(session, str(order["user_id"]), lock_for_update=session.is_mysql)
+            if user is None:
+                raise NotFoundError("error.user_not_found")
+
+            balance_after = int(user["balance"]) + amount
+            session.execute(
+                "UPDATE users SET balance = %s, updated_at = %s WHERE user_id = %s",
+                (balance_after, now, str(order["user_id"])),
+            )
+            session.execute(
+                """
+                UPDATE payment_orders
+                SET platform_trade_no = %s, status = %s, notify_payload = %s, paid_at = %s, updated_at = %s
+                WHERE order_no = %s
+                """,
+                (
+                    trade_no,
+                    "paid",
+                    json_dumps(notify_payload, ensure_ascii=False),
+                    now,
+                    now,
+                    order_no,
+                ),
+            )
+            self._insert_transaction(session, str(order["user_id"]), "payment_recharge", amount, balance_after, order_no, now)
+            return {
+                "user_id": str(order["user_id"]),
+                "amount": amount,
+                "balance_after": balance_after,
+                "order_no": str(order["order_no"]),
+                "trade_no": trade_no,
+                "already_paid": False,
+            }
 
     def add_product(self, actor_user_id: str, name: str, description: str) -> dict[str, int | str]:
         now = int(time.time())
@@ -703,6 +890,16 @@ class StoreService:
             )
             existing_keys.update(str(row["key_content"]) for row in rows)
         return existing_keys
+
+    def _list_payment_amounts_in_session(self, session) -> list[int]:
+        rows = session.fetchall(
+            """
+            SELECT amount
+            FROM payment_amount_options
+            ORDER BY amount ASC
+            """
+        )
+        return [int(row["amount"]) for row in rows]
 
     def _insert_transaction(
         self,

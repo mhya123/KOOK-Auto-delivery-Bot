@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from ..bot import KookBot
-from ..cards import build_fact_cards, build_status_cards
+from ..cards import build_command_button, build_fact_cards, build_status_cards
 from ..context import CommandContext
 from ..store_service import NotFoundError, StoreError
 
@@ -34,6 +34,11 @@ def register(bot: KookBot) -> None:
                     (ctx.t("profile.field.created_at"), created_at),
                 ],
                 theme="primary",
+                actions=[
+                    build_command_button(ctx.t("button.products"), f"{ctx.bot.settings.command_prefix}products", theme="primary"),
+                    build_command_button(ctx.t("button.pay_amounts"), f"{ctx.bot.settings.command_prefix}pay_amounts", theme="warning"),
+                    build_command_button(ctx.t("button.help"), f"{ctx.bot.settings.command_prefix}help", theme="secondary"),
+                ],
             )
         )
 
@@ -63,5 +68,9 @@ def register(bot: KookBot) -> None:
                     (ctx.t("recharge.field.balance_after"), str(result["balance_after"])),
                 ],
                 theme="success",
+                actions=[
+                    build_command_button(ctx.t("button.balance"), f"{ctx.bot.settings.command_prefix}balance", theme="success"),
+                    build_command_button(ctx.t("button.products"), f"{ctx.bot.settings.command_prefix}products", theme="primary"),
+                ],
             )
         )

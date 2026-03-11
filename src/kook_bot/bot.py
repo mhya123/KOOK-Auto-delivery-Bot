@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import secrets
 import shlex
+import time
+from json import dumps as json_dumps
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +22,7 @@ from .gateway import KookGateway
 from .i18n import Translator
 from .kook_http import KookHttpClient
 from .logging_utils import get_logger
+from .payment_gateway import MxlgPaymentGateway
 from .permissions import PermissionService, Role, role_allows
 from .store_service import StoreService
 
@@ -35,6 +39,7 @@ class KookBot(BotTransportMixin, BotImportMixin):
         self.database = Database(settings)
         self.permissions = PermissionService(self.database, settings.super_admin_ids)
         self.store = StoreService(self.database, self.permissions, settings)
+        self.payment_gateway = MxlgPaymentGateway(settings)
         self.command_loader = CommandLoader(self)
         self.translator = Translator(settings.locale, project_root / settings.locale_dir)
         self._http: KookHttpClient | None = None
@@ -77,6 +82,7 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 (
                     "starting prefix=%r api_base_url=%s db_backend=%s super_admin_ids=%s log_level=%s "
                     "recharge_card_format=%r recharge_card_random_length=%s "
+                    "payment_enabled=%s payment_api_base_url=%s payment_base_url=%s "
                     "log_http=%s log_events=%s log_commands=%s log_command_status=%s log_imports=%s locale=%s locale_dir=%s "
                     "admin_command_channel_id=%s log_channel_id=%s import_web_enabled=%s import_web_host=%s "
                     "import_web_port=%s import_web_base_url=%s import_web_ttl_seconds=%s "
@@ -89,6 +95,9 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 self.settings.log_level.upper(),
                 self.settings.recharge_card_format,
                 self.settings.recharge_card_random_length,
+                self.settings.payment_enabled,
+                self.settings.payment_api_base_url,
+                self.payment_gateway.public_base_url,
                 self.settings.log_http,
                 self.settings.log_events,
                 self.settings.log_commands,
@@ -111,7 +120,7 @@ class KookBot(BotTransportMixin, BotImportMixin):
             )
             self.store.ensure_initialized()
             self.command_loader.load(force=True)
-            if self.settings.import_web_enabled:
+            if self.settings.import_web_enabled or self.settings.payment_enabled:
                 await self._start_import_web_server()
             try:
                 await gateway.run_forever()
@@ -143,6 +152,25 @@ class KookBot(BotTransportMixin, BotImportMixin):
         if not channel_id:
             return True
         return not event.is_direct and event.target_id == channel_id
+
+    async def create_payment_order(self, user_id: str, *, amount: int, pay_type: str) -> dict[str, object]:
+        order_no = f"PAY{int(time.time())}{secrets.randbelow(1000000):06d}"
+        result = self.payment_gateway.create_order(
+            order_no=order_no,
+            pay_type=pay_type,
+            amount=amount,
+            product_name=f"Balance Recharge {amount}",
+        )
+        self.store.create_payment_order(
+            user_id,
+            amount=amount,
+            pay_type=pay_type,
+            order_no=order_no,
+            create_payload=result,
+        )
+        result["order_no"] = order_no
+        result["submit_url"] = f"{self.payment_gateway.public_base_url}/payment/submit/{order_no}"
+        return result
 
     async def _send_command_log(
         self,
@@ -179,12 +207,12 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 logger.debug("event ignored is_bot=%s msg_id=%s", event.is_bot, event.msg_id)
             return
 
-        if event.attachments and not (event.is_text and event.content.startswith(prefix)):
+        if event.attachments and not ((event.is_text or event.is_button_click) and event.content.startswith(prefix)):
             handled = await self._handle_pending_import_upload(event)
             if handled:
                 return
 
-        if event.author_id in self._pending_import_uploads and not event.is_text:
+        if event.author_id in self._pending_import_uploads and not (event.is_text or event.is_button_click):
             content_preview = event.content.replace("\n", "\\n")
             if len(content_preview) > 200:
                 content_preview = f"{content_preview[:197]}..."
@@ -198,9 +226,14 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 content_preview,
             )
 
-        if not event.is_text:
+        if not (event.is_text or event.is_button_click):
             if self.settings.log_events:
-                logger.debug("event ignored is_text=%s msg_id=%s", event.is_text, event.msg_id)
+                logger.debug(
+                    "event ignored is_text=%s is_button_click=%s msg_id=%s",
+                    event.is_text,
+                    event.is_button_click,
+                    event.msg_id,
+                )
             return
 
         if not event.content.startswith(prefix):

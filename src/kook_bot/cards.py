@@ -3,11 +3,56 @@ from __future__ import annotations
 from typing import Any, Iterable
 
 
+def build_command_button(text: str, command: str, *, theme: str = "primary") -> dict[str, Any]:
+    return {
+        "type": "button",
+        "theme": theme,
+        "click": "return-val",
+        "value": command,
+        "text": {
+            "type": "plain-text",
+            "content": text,
+        },
+    }
+
+
+def build_link_button(text: str, url: str, *, theme: str = "primary") -> dict[str, Any]:
+    return {
+        "type": "button",
+        "theme": theme,
+        "click": "link",
+        "value": url,
+        "text": {
+            "type": "plain-text",
+            "content": text,
+        },
+    }
+
+
+def build_action_group(buttons: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "type": "action-group",
+        "elements": [button for button in buttons],
+    }
+
+
+def build_action_groups(buttons: Iterable[dict[str, Any]], *, chunk_size: int = 4) -> list[dict[str, Any]]:
+    items = [button for button in buttons]
+    if not items:
+        return []
+
+    groups: list[dict[str, Any]] = []
+    for start in range(0, len(items), max(1, chunk_size)):
+        groups.append(build_action_group(items[start : start + max(1, chunk_size)]))
+    return groups
+
+
 def build_text_cards(
     content: str,
     *,
     theme: str = "primary",
     title: str | None = None,
+    actions: Iterable[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     # 统一处理文本分片，避免回复过长导致卡片发送失败。
     lines = content.splitlines() or [content]
@@ -53,6 +98,10 @@ def build_text_cards(
                 },
             }
         )
+        action_items = list(actions or [])
+        if action_items and index == 0:
+            modules.append({"type": "divider"})
+            modules.extend(build_action_groups(action_items))
         cards.append(
             {
                 "type": "card",
@@ -71,12 +120,14 @@ def build_fact_cards(
     theme: str = "primary",
     footer: str | None = None,
     facts_per_card: int = 6,
+    actions: Iterable[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     fact_items = list(facts)
     if not fact_items:
         return build_text_cards(" ", theme=theme, title=title)
 
     cards: list[dict[str, Any]] = []
+    action_items = list(actions or [])
     for start in range(0, len(fact_items), facts_per_card):
         page = fact_items[start : start + facts_per_card]
         modules: list[dict[str, Any]] = []
@@ -120,6 +171,10 @@ def build_fact_cards(
                 }
             )
 
+        if action_items and start == 0:
+            modules.append({"type": "divider"})
+            modules.extend(build_action_groups(action_items))
+
         cards.append(
             {
                 "type": "card",
@@ -138,6 +193,7 @@ def build_status_cards(
     facts: Iterable[tuple[str, str]] | None = None,
     theme: str = "primary",
     footer: str | None = None,
+    actions: Iterable[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     fact_items = list(facts or [])
     modules: list[dict[str, Any]] = [
@@ -190,6 +246,11 @@ def build_status_cards(
                 ],
             }
         )
+
+    action_items = list(actions or [])
+    if action_items:
+        modules.append({"type": "divider"})
+        modules.extend(build_action_groups(action_items))
 
     return [
         {

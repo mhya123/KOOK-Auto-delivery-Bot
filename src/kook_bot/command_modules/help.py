@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import ceil
 
 from ..bot import KookBot
+from ..cards import build_action_groups, build_command_button
 from ..commands import CommandSpec
 from ..context import CommandContext
 from ..permissions import Role
@@ -14,8 +15,8 @@ ROLE_THEMES = {
     Role.SUPER_ADMIN: "danger",
 }
 MAX_HELP_CARDS = 5
-MIN_COMMANDS_PER_CARD = 3
-MAX_COMMANDS_PER_CARD = 8
+HELP_COMMANDS_PER_PAGE = 8
+HELP_COMMANDS_PER_CARD = 4
 
 
 def register(bot: KookBot) -> None:
@@ -27,17 +28,28 @@ def register(bot: KookBot) -> None:
     )
     async def help_command(ctx: CommandContext) -> None:
         visible_commands = ctx.bot.commands.visible_commands(ctx.author_role)
-        await ctx.reply_card(_build_help_cards(ctx, visible_commands))
+        page = 1
+        if ctx.args:
+            try:
+                page = max(1, int(ctx.args[0]))
+            except ValueError:
+                page = 1
+        await ctx.reply_card(_build_help_cards(ctx, visible_commands, page=page))
 
 
-def _build_help_cards(ctx: CommandContext, commands: tuple[CommandSpec, ...]) -> list[dict[str, object]]:
+def _build_help_cards(ctx: CommandContext, commands: tuple[CommandSpec, ...], *, page: int) -> list[dict[str, object]]:
     grouped = _group_commands(commands)
+    total_pages = max(1, ceil(len(commands) / HELP_COMMANDS_PER_PAGE)) if commands else 1
+    current_page = min(max(1, page), total_pages)
+    start = (current_page - 1) * HELP_COMMANDS_PER_PAGE
+    visible_commands = commands[start : start + HELP_COMMANDS_PER_PAGE]
+    visible_grouped = _group_commands(visible_commands)
     cards: list[dict[str, object]] = []
-    commands_per_card = _pick_commands_per_card(grouped)
-    first_card = True
+
+    cards.append(_build_overview_card(ctx, len(commands), grouped, current_page=current_page, total_pages=total_pages))
 
     for role in ROLE_ORDER:
-        role_commands = grouped.get(role, ())
+        role_commands = visible_grouped.get(role, ())
         if not role_commands:
             continue
         cards.extend(
@@ -45,27 +57,11 @@ def _build_help_cards(ctx: CommandContext, commands: tuple[CommandSpec, ...]) ->
                 ctx,
                 role,
                 role_commands,
-                commands_per_card=commands_per_card,
-                include_overview=first_card,
-                total_commands=len(commands),
-                grouped=grouped,
+                commands_per_card=HELP_COMMANDS_PER_CARD,
             )
         )
-        first_card = False
 
     return cards[:MAX_HELP_CARDS] or [_build_empty_help_card(ctx)]
-
-
-def _pick_commands_per_card(grouped: dict[str, tuple[CommandSpec, ...]]) -> int:
-    total_commands = sum(len(items) for items in grouped.values())
-    if total_commands <= 0:
-        return MIN_COMMANDS_PER_CARD
-
-    for size in range(MIN_COMMANDS_PER_CARD, MAX_COMMANDS_PER_CARD + 1):
-        card_count = sum(ceil(len(items) / size) for items in grouped.values() if items)
-        if card_count <= MAX_HELP_CARDS:
-            return size
-    return MAX_COMMANDS_PER_CARD
 
 
 def _build_role_cards(
@@ -74,9 +70,6 @@ def _build_role_cards(
     commands: tuple[CommandSpec, ...],
     *,
     commands_per_card: int,
-    include_overview: bool,
-    total_commands: int,
-    grouped: dict[str, tuple[CommandSpec, ...]],
 ) -> list[dict[str, object]]:
     cards: list[dict[str, object]] = []
     title = ctx.t("help.section_title", role=ctx.t(f"role.{role}"), count=len(commands))
@@ -85,10 +78,6 @@ def _build_role_cards(
     for start in range(0, len(commands), commands_per_card):
         page = commands[start : start + commands_per_card]
         modules: list[dict[str, object]] = []
-
-        if include_overview and start == 0:
-            modules.extend(_build_overview_modules(ctx, total_commands, grouped))
-            modules.append({"type": "divider"})
 
         modules.append(
             {
@@ -123,16 +112,17 @@ def _build_role_cards(
             }
         )
 
-        include_overview = False
-
     return cards
 
 
-def _build_overview_modules(
+def _build_overview_card(
     ctx: CommandContext,
     total_commands: int,
     grouped: dict[str, tuple[CommandSpec, ...]],
-) -> list[dict[str, object]]:
+    *,
+    current_page: int,
+    total_pages: int,
+) -> dict[str, object]:
     role_name = ctx.t(f"role.{ctx.author_role}")
     group_lines = [
         ctx.t(
@@ -150,9 +140,9 @@ def _build_overview_modules(
     ]
     if group_lines:
         overview_lines.extend(["", *group_lines])
-    overview_lines.extend(["", ctx.t("help.footer")])
+    overview_lines.extend(["", ctx.t("help.page", current=current_page, total=total_pages), "", ctx.t("help.footer")])
 
-    return [
+    modules: list[dict[str, object]] = [
         {
             "type": "header",
             "text": {
@@ -167,7 +157,16 @@ def _build_overview_modules(
                 "content": "\n".join(overview_lines),
             },
         },
+        {"type": "divider"},
     ]
+    modules.extend(build_action_groups(_build_overview_buttons(ctx, current_page=current_page, total_pages=total_pages)))
+
+    return {
+        "type": "card",
+        "theme": "primary",
+        "size": "lg",
+        "modules": modules,
+    }
 
 
 def _build_empty_help_card(ctx: CommandContext) -> dict[str, object]:
@@ -200,6 +199,25 @@ def _group_commands(commands: tuple[CommandSpec, ...]) -> dict[str, tuple[Comman
     for spec in commands:
         grouped.setdefault(spec.required_role, []).append(spec)
     return {role: tuple(grouped.get(role, [])) for role in ROLE_ORDER}
+
+
+def _build_overview_buttons(ctx: CommandContext, *, current_page: int, total_pages: int) -> list[dict[str, object]]:
+    prefix = ctx.bot.settings.command_prefix
+    buttons: list[dict[str, object]] = [
+        build_command_button(ctx.t("button.products"), f"{prefix}products", theme="primary"),
+        build_command_button(ctx.t("button.balance"), f"{prefix}balance", theme="success"),
+        build_command_button(ctx.t("button.pay_amounts"), f"{prefix}pay_amounts", theme="warning"),
+        build_command_button(ctx.t("button.myrole"), f"{prefix}myrole", theme="secondary"),
+    ]
+    if current_page > 1:
+        buttons.append(
+            build_command_button(ctx.t("help.prev_page"), f"{prefix}help {current_page - 1}", theme="secondary")
+        )
+    if current_page < total_pages:
+        buttons.append(
+            build_command_button(ctx.t("help.next_page"), f"{prefix}help {current_page + 1}", theme="primary")
+        )
+    return buttons
 
 
 def _build_command_text(ctx: CommandContext, spec: CommandSpec) -> str:

@@ -12,6 +12,7 @@ This project is a KOOK bot for:
 - product and key inventory management
 - automatic key delivery after purchase
 - restock subscription and refund workflow
+- built-in MXLG payment recharge flow
 - permission control with `super_admin`, `admin`, and `user`
 - hot reload for command modules
 - sqlite or mysql backend switch by environment variables
@@ -42,6 +43,8 @@ Admin commands can be restricted to a specific KOOK channel, and admin operation
 - `/balance`
 - `/profile`
 - `/recharge <card_code>`
+- `/pay <amount> <method>`
+- `/pay_amounts`
 - `/products`
 - `/buy <product_id> [quantity]`
 - `/subscribe <product_id>`
@@ -51,6 +54,7 @@ Admin commands can be restricted to a specific KOOK channel, and admin operation
 ### Admin commands
 
 - `/gen_card <amount> <count>`
+- `/set_pay_amounts <amount1> <amount2> ...`
 - `/export_cards [all]`
 - `/export_keys <product_id|all>`
 - `/del_card <card_code>`
@@ -117,6 +121,14 @@ KOOK_COMMAND_PREFIX=/
 KOOK_RECHARGE_CARD_FORMAT=RC-{random}
 KOOK_RECHARGE_CARD_RANDOM_LENGTH=16
 KOOK_RECHARGE_CARD_ALPHABET=ABCDEFGHJKLMNPQRSTUVWXYZ23456789
+KOOK_PAYMENT_ENABLED=false
+KOOK_PAYMENT_API_BASE_URL=https://pay.mxlg.cn
+KOOK_PAYMENT_PID=
+KOOK_PAYMENT_KEY=
+KOOK_PAYMENT_SITENAME=KOOK Auto-delivery Bot
+KOOK_PAYMENT_BASE_URL=
+KOOK_PAYMENT_NOTIFY_PATH=/payment/notify
+KOOK_PAYMENT_RETURN_PATH=/payment/return
 KOOK_LOCALE=en-US
 KOOK_LOCALE_DIR=locales
 KOOK_ADMIN_COMMAND_CHANNEL_ID=4760888878941680
@@ -171,6 +183,45 @@ KOOK_RECHARGE_CARD_FORMAT=KM-{random}
 KOOK_RECHARGE_CARD_FORMAT=RC-{timestamp}-{random}
 KOOK_RECHARGE_CARD_FORMAT=CARD{random}
 ```
+
+## Built-in payment
+
+This project supports MXLG built-in payment for balance recharge.
+
+Users can:
+
+- view allowed recharge amounts
+- choose a recharge amount
+- choose a payment method: `alipay`, `qqpay`, `wxpay`
+
+Admins can:
+
+- configure allowed recharge amounts with `/set_pay_amounts`
+
+Required environment variables:
+
+```env
+KOOK_PAYMENT_ENABLED=true
+KOOK_PAYMENT_API_BASE_URL=https://pay.mxlg.cn
+KOOK_PAYMENT_PID=your-pid
+KOOK_PAYMENT_KEY=your-secret-key
+KOOK_PAYMENT_SITENAME=KOOK Auto-delivery Bot
+KOOK_PAYMENT_BASE_URL=https://your-domain.example.com:18080
+KOOK_PAYMENT_NOTIFY_PATH=/payment/notify
+KOOK_PAYMENT_RETURN_PATH=/payment/return
+KOOK_PAYMENT_ALLOW_CUSTOM_AMOUNT=false
+KOOK_PAYMENT_CUSTOM_AMOUNT_MIN=1
+KOOK_PAYMENT_CUSTOM_AMOUNT_MAX=100000
+```
+
+Flow:
+
+- user creates an order with `/pay <amount> <method>`
+- bot submits the order to `mapi.php`
+- payment gateway calls back `notify_url`
+- bot verifies the signature and credits the balance automatically
+
+If `KOOK_PAYMENT_ALLOW_CUSTOM_AMOUNT=true`, users can also enter custom amounts manually with `/pay <amount> <method>` as long as the amount is within the configured min/max range.
 
 ## Install
 

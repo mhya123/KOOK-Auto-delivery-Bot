@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from ..bot import KookBot
-from ..cards import build_fact_cards, build_status_cards, build_text_cards
+from ..cards import build_action_group, build_command_button, build_fact_cards, build_status_cards, build_text_cards
 from ..context import CommandContext
 from ..store_service import InsufficientBalanceError, NotFoundError, OutOfStockError, StoreError
+
+MAX_PRODUCT_CARDS = 5
+PRODUCTS_PER_CARD = 2
 
 
 def register(bot: KookBot) -> None:
@@ -19,23 +22,7 @@ def register(bot: KookBot) -> None:
             await ctx.reply_t("common.no_products")
             return
 
-        product_lines = []
-        for product in products:
-            status_key = "store.products.status_out_of_stock" if int(product["stock"]) == 0 else "store.products.status_in_stock"
-            product_lines.append(
-                ctx.t(
-                    "store.products.item",
-                    **product,
-                    status=ctx.t(status_key, stock=product["stock"]),
-                )
-            )
-        await ctx.reply_card(
-            build_text_cards(
-                "\n".join(product_lines),
-                title=ctx.t("store.products.title"),
-                theme="secondary",
-            )
-        )
+        await ctx.reply_card(_build_product_cards(ctx, products))
 
     @bot.command(
         "subscribe",
@@ -63,6 +50,14 @@ def register(bot: KookBot) -> None:
                     product_name=result["product_name"],
                 ),
                 theme="success",
+                actions=[
+                    build_command_button(ctx.t("button.products"), f"{ctx.bot.settings.command_prefix}products", theme="primary"),
+                    build_command_button(
+                        ctx.t("button.unsubscribe"),
+                        f"{ctx.bot.settings.command_prefix}unsubscribe {result['product_id']}",
+                        theme="secondary",
+                    ),
+                ],
             )
         )
 
@@ -92,6 +87,14 @@ def register(bot: KookBot) -> None:
                     product_name=result["product_name"],
                 ),
                 theme="success",
+                actions=[
+                    build_command_button(ctx.t("button.products"), f"{ctx.bot.settings.command_prefix}products", theme="primary"),
+                    build_command_button(
+                        ctx.t("button.subscribe"),
+                        f"{ctx.bot.settings.command_prefix}subscribe {result['product_id']}",
+                        theme="warning",
+                    ),
+                ],
             )
         )
 
@@ -155,5 +158,126 @@ def register(bot: KookBot) -> None:
                 ],
                 theme="success",
                 footer=ctx.t("store.buy.success_footer"),
+                actions=[
+                    build_command_button(ctx.t("button.products"), f"{ctx.bot.settings.command_prefix}products", theme="primary"),
+                    build_command_button(ctx.t("button.balance"), f"{ctx.bot.settings.command_prefix}balance", theme="success"),
+                ],
             )
         )
+
+
+def _build_product_cards(ctx: CommandContext, products: list[dict[str, object]]) -> list[dict[str, object]]:
+    cards: list[dict[str, object]] = []
+    visible_products = products[: MAX_PRODUCT_CARDS * PRODUCTS_PER_CARD]
+
+    for start in range(0, len(visible_products), PRODUCTS_PER_CARD):
+        page = visible_products[start : start + PRODUCTS_PER_CARD]
+        modules: list[dict[str, object]] = []
+
+        if start == 0:
+            modules.append(
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain-text",
+                        "content": ctx.t("store.products.title"),
+                    },
+                }
+            )
+            modules.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "kmarkdown",
+                        "content": ctx.t("store.products.summary", count=len(products)),
+                    },
+                }
+            )
+            modules.append({"type": "divider"})
+
+        for index, product in enumerate(page):
+            product_id = int(product["id"])
+            stock = int(product["stock"])
+            description = str(product.get("description") or "-")
+            price = str(product.get("price") or "-")
+            status_key = "store.products.status_out_of_stock" if stock <= 0 else "store.products.status_in_stock"
+            modules.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "kmarkdown",
+                        "content": ctx.t(
+                            "store.products.card_body",
+                            product_id=product_id,
+                            name=product.get("name", ""),
+                            price=price,
+                            stock=stock,
+                            status=ctx.t(status_key, stock=stock),
+                            description=description,
+                        ),
+                    },
+                }
+            )
+            modules.append(build_action_group(_build_product_buttons(ctx, product_id, stock)))
+            if index != len(page) - 1:
+                modules.append({"type": "divider"})
+
+        if start + PRODUCTS_PER_CARD >= len(visible_products) and len(products) > len(visible_products):
+            modules.append({"type": "divider"})
+            modules.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain-text",
+                            "content": ctx.t(
+                                "store.products.truncated",
+                                shown=len(visible_products),
+                                total=len(products),
+                            ),
+                        }
+                    ],
+                }
+            )
+
+        cards.append(
+            {
+                "type": "card",
+                "theme": "secondary" if start else "primary",
+                "size": "lg",
+                "modules": modules,
+            }
+        )
+
+    return cards
+
+
+def _build_product_buttons(ctx: CommandContext, product_id: int, stock: int) -> list[dict[str, object]]:
+    prefix = ctx.bot.settings.command_prefix
+    buttons: list[dict[str, object]] = []
+    if stock > 0:
+        buttons.append(
+            build_command_button(
+                ctx.t("button.buy_now"),
+                f"{prefix}buy {product_id}",
+                theme="success",
+            )
+        )
+        if stock > 1:
+            quantity = min(stock, 10)
+            buttons.append(
+                build_command_button(
+                    ctx.t("button.buy_quantity", quantity=quantity),
+                    f"{prefix}buy {product_id} {quantity}",
+                    theme="primary",
+                )
+            )
+    else:
+        buttons.append(
+            build_command_button(
+                ctx.t("button.subscribe"),
+                f"{prefix}subscribe {product_id}",
+                theme="warning",
+            )
+        )
+    return buttons

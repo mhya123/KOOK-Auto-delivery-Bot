@@ -13,6 +13,7 @@ from aiohttp import web
 from .cards import build_status_cards
 from .context import MessageEvent
 from .logging_utils import get_logger
+from .payment_gateway import PaymentGatewayError
 from .permissions import Role, role_allows
 from .store_service import StoreError
 
@@ -42,12 +43,23 @@ class BotImportMixin:
             return
 
         app = web.Application()
-        app.add_routes(
-            [
-                web.get("/import/{upload_id}", self._handle_import_web_page),
-                web.post("/import/{upload_id}", self._handle_import_web_submit),
-            ]
-        )
+        routes: list[web.RouteDef] = []
+        if self.settings.import_web_enabled:
+            routes.extend(
+                [
+                    web.get("/import/{upload_id}", self._handle_import_web_page),
+                    web.post("/import/{upload_id}", self._handle_import_web_submit),
+                ]
+            )
+        if self.settings.payment_enabled:
+            routes.extend(
+                [
+                    web.get("/payment/submit/{order_no}", self._handle_payment_submit_page),
+                    web.get(self.settings.payment_notify_path, self._handle_payment_notify),
+                    web.get(self.settings.payment_return_path, self._handle_payment_return),
+                ]
+            )
+        app.add_routes(routes)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, host=self.settings.import_web_host, port=self.settings.import_web_port)
@@ -55,10 +67,11 @@ class BotImportMixin:
         self._import_web_runner = runner
         self._warn_import_web_binding()
         logger.info(
-            "import web server listening host=%s port=%s base_url=%s",
+            "internal web server listening host=%s port=%s import_base_url=%s payment_base_url=%s",
             self.settings.import_web_host,
             self.settings.import_web_port,
             self.settings.import_web_base_url,
+            self.payment_gateway.public_base_url,
         )
 
     async def _stop_import_web_server(self) -> None:
@@ -72,32 +85,179 @@ class BotImportMixin:
         if host not in {"127.0.0.1", "localhost", "::1"}:
             return
 
-        parsed = urlparse(self.settings.import_web_base_url)
+        parsed = urlparse(self.payment_gateway.public_base_url or self.settings.import_web_base_url)
         base_host = (parsed.hostname or "").strip().lower()
         if base_host in {"127.0.0.1", "localhost", "::1"}:
             logger.warning(
-                "import web server is bound to loopback host=%s and base_url=%s, external users will not be able to access it",
+                "internal web server is bound to loopback host=%s and base_url=%s, external users will not be able to access it",
                 self.settings.import_web_host,
-                self.settings.import_web_base_url,
+                self.payment_gateway.public_base_url or self.settings.import_web_base_url,
             )
             return
 
         try:
             if ipaddress.ip_address(base_host).is_loopback:
                 logger.warning(
-                    "import web server is bound to loopback host=%s and base_url=%s, external users will not be able to access it",
+                    "internal web server is bound to loopback host=%s and base_url=%s, external users will not be able to access it",
                     self.settings.import_web_host,
-                    self.settings.import_web_base_url,
+                    self.payment_gateway.public_base_url or self.settings.import_web_base_url,
                 )
                 return
         except ValueError:
             pass
 
         logger.warning(
-            "import web server is bound to loopback host=%s but base_url=%s looks external, this mismatch will block public access; use KOOK_IMPORT_WEB_HOST=0.0.0.0",
+            "internal web server is bound to loopback host=%s but base_url=%s looks external, this mismatch will block public access; use KOOK_IMPORT_WEB_HOST=0.0.0.0",
             self.settings.import_web_host,
-            self.settings.import_web_base_url,
+            self.payment_gateway.public_base_url or self.settings.import_web_base_url,
         )
+
+    async def _handle_payment_notify(self, request: web.Request) -> web.Response:
+        params = {str(key): str(value) for key, value in request.query.items()}
+        order_no = params.get("out_trade_no", "")
+        self._log_import("payment notify received order_no=%s remote=%s", order_no, request.remote)
+
+        if not self.payment_gateway.verify_callback(params):
+            logger.warning("payment notify rejected reason=bad_sign order_no=%s", order_no)
+            return web.Response(text="fail", status=400)
+
+        if params.get("trade_status") != "TRADE_SUCCESS":
+            logger.warning("payment notify rejected reason=bad_status order_no=%s status=%s", order_no, params.get("trade_status"))
+            return web.Response(text="fail", status=400)
+
+        try:
+            result = self.store.complete_payment_order(
+                order_no=order_no,
+                trade_no=params.get("trade_no", ""),
+                amount=self.payment_gateway.parse_amount(params.get("money", "0")),
+                pay_type=params.get("type", ""),
+                notify_payload=params,
+            )
+        except (StoreError, PaymentGatewayError):
+            logger.exception("payment notify failed order_no=%s", order_no)
+            return web.Response(text="fail", status=400)
+
+        if result is None:
+            logger.warning("payment notify rejected reason=order_not_found order_no=%s", order_no)
+            return web.Response(text="fail", status=404)
+
+        if not bool(result.get("already_paid")):
+            await self._notify_payment_success(result)
+        return web.Response(text="success")
+
+    async def _handle_payment_submit_page(self, request: web.Request) -> web.Response:
+        order_no = request.match_info.get("order_no", "")
+        payload = self.store.get_payment_submit_payload(order_no)
+        if payload is None:
+            return web.Response(
+                text=self._render_payment_result_page(self.t("payment.submit.not_found")),
+                content_type="text/html",
+                status=404,
+            )
+
+        gateway_url = str(payload.get("gateway_url", "")).strip()
+        if not gateway_url:
+            return web.Response(
+                text=self._render_payment_result_page(self.t("payment.submit.invalid")),
+                content_type="text/html",
+                status=400,
+            )
+
+        return web.Response(
+            text=self._render_payment_submit_page(gateway_url, payload),
+            content_type="text/html",
+        )
+
+    async def _handle_payment_return(self, request: web.Request) -> web.Response:
+        params = {str(key): str(value) for key, value in request.query.items()}
+        order_no = params.get("out_trade_no", "")
+        if not self.payment_gateway.verify_callback(params):
+            return web.Response(
+                text=self._render_payment_result_page(self.t("payment.return.invalid_sign")),
+                content_type="text/html",
+                status=400,
+            )
+
+        if params.get("trade_status") != "TRADE_SUCCESS":
+            return web.Response(
+                text=self._render_payment_result_page(self.t("payment.return.failed")),
+                content_type="text/html",
+                status=400,
+            )
+
+        order = self.store.get_payment_order(order_no)
+        amount_text = params.get("money", "0")
+        body = self.t("payment.return.success", order_no=order_no, amount=amount_text)
+        if order is not None and str(order.get("status", "")) != "paid":
+            try:
+                result = self.store.complete_payment_order(
+                    order_no=order_no,
+                    trade_no=params.get("trade_no", ""),
+                    amount=self.payment_gateway.parse_amount(params.get("money", "0")),
+                    pay_type=params.get("type", ""),
+                    notify_payload=params,
+                )
+                if result is not None and not bool(result.get("already_paid")):
+                    await self._notify_payment_success(result)
+            except (StoreError, PaymentGatewayError):
+                logger.exception("payment return processing failed order_no=%s", order_no)
+
+        return web.Response(
+            text=self._render_payment_result_page(body),
+            content_type="text/html",
+        )
+
+    def _render_payment_result_page(self, message: str) -> str:
+        safe_message = html.escape(message)
+        return (
+            f"<!doctype html><html><head><meta charset='utf-8'><title>{html.escape(self.t('payment.return.page_title'))}</title>"
+            "<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#1f2937;}"
+            ".box{padding:20px;background:#f3f4f6;border-radius:10px;}</style></head><body>"
+            f"<h1>{html.escape(self.t('payment.return.page_title'))}</h1>"
+            f"<div class='box'><p>{safe_message}</p></div></body></html>"
+        )
+
+    def _render_payment_submit_page(self, gateway_url: str, payload: dict[str, str]) -> str:
+        inputs: list[str] = []
+        for key, value in payload.items():
+            if key == "gateway_url":
+                continue
+            inputs.append(
+                f"<input type='hidden' name='{html.escape(key)}' value='{html.escape(value)}' />"
+            )
+        return (
+            f"<!doctype html><html><head><meta charset='utf-8'><title>{html.escape(self.t('payment.submit.page_title'))}</title>"
+            "<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#1f2937;}"
+            ".box{padding:20px;background:#f3f4f6;border-radius:10px;}</style></head>"
+            f"<body onload='document.getElementById(\"pay-form\").submit()'>"
+            f"<h1>{html.escape(self.t('payment.submit.page_title'))}</h1>"
+            f"<div class='box'><p>{html.escape(self.t('payment.submit.redirecting'))}</p></div>"
+            f"<form id='pay-form' method='post' action='{html.escape(gateway_url)}'>"
+            f"{''.join(inputs)}"
+            f"<noscript><button type='submit'>{html.escape(self.t('payment.submit.manual_button'))}</button></noscript>"
+            "</form></body></html>"
+        )
+
+    async def _notify_payment_success(self, result: dict[str, object]) -> None:
+        cards = build_status_cards(
+            self.t("payment.notify.title"),
+            body=self.t(
+                "payment.notify.body",
+                amount=result["amount"],
+                balance_after=result["balance_after"],
+                order_no=result["order_no"],
+            ),
+            facts=[
+                (self.t("payment.field.amount"), str(result["amount"])),
+                (self.t("payment.field.balance_after"), str(result["balance_after"])),
+                (self.t("payment.field.order_no"), str(result["order_no"])),
+            ],
+            theme="success",
+        )
+        try:
+            await self.send_direct_card(cards, target_id=str(result["user_id"]))
+        except Exception:
+            logger.exception("failed to send payment success notice user_id=%s", result["user_id"])
 
     async def _handle_import_web_page(self, request: web.Request) -> web.Response:
         upload_id = request.match_info.get("upload_id", "")

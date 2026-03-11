@@ -29,14 +29,23 @@ class MessageEvent:
         extra = payload.get("extra") or {}
         author = extra.get("author") or {}
         kmarkdown = extra.get("kmarkdown") or {}
+        body = extra.get("body") or {}
+        message_type = int(payload.get("type", 0))
         content = str(payload.get("content", ""))
-        if int(payload.get("type", 0)) == 9:
+        author_id = str(payload.get("author_id", ""))
+        target_id = str(payload.get("target_id", ""))
+        if message_type == 9:
             content = str(kmarkdown.get("raw_content", content))
+        elif message_type == 255 and str(extra.get("type", "")) == "message_btn_click":
+            content = str(body.get("value", "") or "")
+            author = body.get("user_info") or author
+            author_id = str(body.get("user_id") or author_id)
+            target_id = str(body.get("target_id") or target_id)
         return cls(
             channel_type=str(payload.get("channel_type", "")),
-            message_type=int(payload.get("type", 0)),
-            target_id=str(payload.get("target_id", "")),
-            author_id=str(payload.get("author_id", "")),
+            message_type=message_type,
+            target_id=target_id,
+            author_id=author_id,
             chat_code=str(payload.get("chat_code") or extra.get("chat_code") or ""),
             guild_id=str(extra.get("guild_id") or ""),
             content=content,
@@ -48,6 +57,11 @@ class MessageEvent:
     @property
     def is_text(self) -> bool:
         return self.message_type in {1, 9}
+
+    @property
+    def is_button_click(self) -> bool:
+        extra = self.raw_event.get("extra") or {}
+        return self.message_type == 255 and str(extra.get("type", "")) == "message_btn_click"
 
     @property
     def is_bot(self) -> bool:
