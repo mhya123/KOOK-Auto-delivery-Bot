@@ -54,6 +54,9 @@ def _load_dotenv() -> None:
 class Settings:
     token: str
     command_prefix: str = "/"
+    recharge_card_format: str = "RC-{random}"
+    recharge_card_random_length: int = 16
+    recharge_card_alphabet: str = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     locale: str = "en-US"
     locale_dir: str = "locales"
     admin_command_channel_id: str = "4760888878941680"
@@ -99,6 +102,12 @@ class Settings:
         return cls(
             token=token,
             command_prefix=prefix,
+            recharge_card_format=os.getenv("KOOK_RECHARGE_CARD_FORMAT", "RC-{random}").strip() or "RC-{random}",
+            recharge_card_random_length=max(4, _env_int("KOOK_RECHARGE_CARD_RANDOM_LENGTH", 16)),
+            recharge_card_alphabet=(
+                os.getenv("KOOK_RECHARGE_CARD_ALPHABET", "ABCDEFGHJKLMNPQRSTUVWXYZ23456789").strip()
+                or "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            ),
             locale=os.getenv("KOOK_LOCALE", "en-US").strip() or "en-US",
             locale_dir=os.getenv("KOOK_LOCALE_DIR", "locales").strip() or "locales",
             admin_command_channel_id=os.getenv("KOOK_ADMIN_COMMAND_CHANNEL_ID", "4760888878941680").strip(),

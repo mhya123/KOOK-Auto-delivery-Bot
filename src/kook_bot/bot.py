@@ -34,7 +34,7 @@ class KookBot(BotTransportMixin, BotImportMixin):
         self.commands = CommandRegistry()
         self.database = Database(settings)
         self.permissions = PermissionService(self.database, settings.super_admin_ids)
-        self.store = StoreService(self.database, self.permissions)
+        self.store = StoreService(self.database, self.permissions, settings)
         self.command_loader = CommandLoader(self)
         self.translator = Translator(settings.locale, project_root / settings.locale_dir)
         self._http: KookHttpClient | None = None
@@ -76,6 +76,7 @@ class KookBot(BotTransportMixin, BotImportMixin):
             logger.info(
                 (
                     "starting prefix=%r api_base_url=%s db_backend=%s super_admin_ids=%s log_level=%s "
+                    "recharge_card_format=%r recharge_card_random_length=%s "
                     "log_http=%s log_events=%s log_commands=%s log_command_status=%s log_imports=%s locale=%s locale_dir=%s "
                     "admin_command_channel_id=%s log_channel_id=%s import_web_enabled=%s import_web_host=%s "
                     "import_web_port=%s import_web_base_url=%s import_web_ttl_seconds=%s "
@@ -86,6 +87,8 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 self.settings.db_backend,
                 self.settings.super_admin_ids,
                 self.settings.log_level.upper(),
+                self.settings.recharge_card_format,
+                self.settings.recharge_card_random_length,
                 self.settings.log_http,
                 self.settings.log_events,
                 self.settings.log_commands,

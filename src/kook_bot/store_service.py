@@ -4,6 +4,7 @@ import secrets
 import time
 from dataclasses import dataclass
 
+from .config import Settings
 from .database import Database
 from .logging_utils import get_logger
 from .permissions import PermissionService
@@ -36,6 +37,7 @@ class StoreService:
 
     database: Database
     permissions: PermissionService
+    settings: Settings
 
     def ensure_initialized(self) -> None:
         self.permissions.initialize()
@@ -60,8 +62,13 @@ class StoreService:
 
         created_at = int(time.time())
         cards: list[tuple[str, int, str, int]] = []
-        for _ in range(count):
-            cards.append((self._new_card_code(), amount, actor_user_id, created_at))
+        generated_codes: set[str] = set()
+        while len(cards) < count:
+            card_code = self._new_card_code()
+            if card_code in generated_codes:
+                continue
+            generated_codes.add(card_code)
+            cards.append((card_code, amount, actor_user_id, created_at))
 
         with self.database.transaction() as session:
             session.executemany(
@@ -717,3 +724,30 @@ class StoreService:
     def _new_card_code(self) -> str:
         """充值卡使用大写随机串，避免用户输入时混淆。"""
         return f"RC-{secrets.token_hex(8).upper()}"
+
+    def _new_card_code(self) -> str:
+        # 充值卡格式支持环境变量模板，默认仍然生成大写随机串。
+        alphabet = self.settings.recharge_card_alphabet or "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        random_part = "".join(secrets.choice(alphabet) for _ in range(self.settings.recharge_card_random_length))
+        template = self.settings.recharge_card_format or "RC-{random}"
+        try:
+            return template.format(
+                random=random_part,
+                timestamp=int(time.time()),
+            )
+        except Exception:
+            logger.warning("invalid recharge card format template=%r, fallback to default", template)
+            return f"RC-{random_part}"
+
+    def _new_card_code(self) -> str:
+        alphabet = self.settings.recharge_card_alphabet or "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        random_part = "".join(secrets.choice(alphabet) for _ in range(self.settings.recharge_card_random_length))
+        template = self.settings.recharge_card_format or "RC-{random}"
+        try:
+            return template.format(
+                random=random_part,
+                timestamp=int(time.time()),
+            )
+        except Exception:
+            logger.warning("invalid recharge card format template=%r, fallback to default", template)
+            return f"RC-{random_part}"

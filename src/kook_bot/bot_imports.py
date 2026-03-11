@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import html
+import ipaddress
 import secrets
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 from aiohttp import web
 
@@ -51,6 +53,7 @@ class BotImportMixin:
         site = web.TCPSite(runner, host=self.settings.import_web_host, port=self.settings.import_web_port)
         await site.start()
         self._import_web_runner = runner
+        self._warn_import_web_binding()
         logger.info(
             "import web server listening host=%s port=%s base_url=%s",
             self.settings.import_web_host,
@@ -63,6 +66,38 @@ class BotImportMixin:
             return
         await self._import_web_runner.cleanup()
         self._import_web_runner = None
+
+    def _warn_import_web_binding(self) -> None:
+        host = (self.settings.import_web_host or "").strip().lower()
+        if host not in {"127.0.0.1", "localhost", "::1"}:
+            return
+
+        parsed = urlparse(self.settings.import_web_base_url)
+        base_host = (parsed.hostname or "").strip().lower()
+        if base_host in {"127.0.0.1", "localhost", "::1"}:
+            logger.warning(
+                "import web server is bound to loopback host=%s and base_url=%s, external users will not be able to access it",
+                self.settings.import_web_host,
+                self.settings.import_web_base_url,
+            )
+            return
+
+        try:
+            if ipaddress.ip_address(base_host).is_loopback:
+                logger.warning(
+                    "import web server is bound to loopback host=%s and base_url=%s, external users will not be able to access it",
+                    self.settings.import_web_host,
+                    self.settings.import_web_base_url,
+                )
+                return
+        except ValueError:
+            pass
+
+        logger.warning(
+            "import web server is bound to loopback host=%s but base_url=%s looks external, this mismatch will block public access; use KOOK_IMPORT_WEB_HOST=0.0.0.0",
+            self.settings.import_web_host,
+            self.settings.import_web_base_url,
+        )
 
     async def _handle_import_web_page(self, request: web.Request) -> web.Response:
         upload_id = request.match_info.get("upload_id", "")
