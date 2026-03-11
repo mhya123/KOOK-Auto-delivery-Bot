@@ -203,9 +203,9 @@ KOOK_RECHARGE_CARD_FORMAT=CARD{random}
 
 ```env
 KOOK_PAYMENT_ENABLED=true
-KOOK_PAYMENT_API_BASE_URL=https://pay.mxlg.cn
+KOOK_PAYMENT_API_BASE_URL=https://XXXXX.com
 KOOK_PAYMENT_PID=your-pid
-KOOK_PAYMENT_KEY=your-secret-key
+KOOK_PAYMENT_KEY=your-key
 KOOK_PAYMENT_SITENAME=KOOK Auto-delivery Bot
 KOOK_PAYMENT_BASE_URL=https://your-domain.example.com:18080
 KOOK_PAYMENT_NOTIFY_PATH=/payment/notify
