@@ -54,7 +54,18 @@ def register(bot: KookBot) -> None:
                 await ctx.reply_error(exc)
             return
 
-        await ctx.reply_card(_build_payment_order_cards(ctx, result))
+        order_cards = _build_payment_order_cards(ctx, result)
+        if ctx.event.is_direct:
+            await ctx.reply_card(order_cards)
+            return
+
+        try:
+            await ctx.bot.send_direct_card(order_cards, target_id=ctx.author_id)
+        except Exception:
+            await ctx.reply_error(StoreError("error.payment_dm_failed"))
+            return
+
+        await ctx.reply_card(_build_payment_dm_notice_cards(ctx, result))
 
     @bot.command(
         "pay_amounts",
@@ -206,6 +217,22 @@ def _build_payment_order_cards(ctx: CommandContext, result: dict[str, object]) -
         ]
         if submit_url
         else [
+            build_command_button(ctx.t("button.pay_amounts"), f"{ctx.bot.settings.command_prefix}pay_amounts", theme="secondary"),
+        ],
+    )
+
+
+def _build_payment_dm_notice_cards(ctx: CommandContext, result: dict[str, object]) -> list[dict[str, object]]:
+    return build_status_cards(
+        ctx.t("payment.created.notice_title"),
+        body=ctx.t("payment.created.notice_body"),
+        facts=[
+            (ctx.t("payment.field.amount"), str(result.get("money", ""))),
+            (ctx.t("payment.field.method"), str(result.get("type", ""))),
+            (ctx.t("payment.field.order_no"), str(result.get("order_no", ""))),
+        ],
+        theme="success",
+        actions=[
             build_command_button(ctx.t("button.pay_amounts"), f"{ctx.bot.settings.command_prefix}pay_amounts", theme="secondary"),
         ],
     )

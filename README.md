@@ -13,6 +13,7 @@ This project is a KOOK bot for:
 - automatic key delivery after purchase
 - restock subscription and refund workflow
 - built-in MXLG payment recharge flow
+- user command cooldown for anti-spam and repeated button clicks
 - permission control with `super_admin`, `admin`, and `user`
 - hot reload for command modules
 - sqlite or mysql backend switch by environment variables
@@ -31,6 +32,7 @@ Admin commands can be restricted to a specific KOOK channel, and admin operation
   - can grant admin role
 - `admin`
   - can manage recharge cards, products, and keys
+  - only ids listed in `KOOK_RUNTIME_CONFIG_ADMIN_IDS` can see and use runtime settings commands
 - `user`
   - default role
 
@@ -53,8 +55,16 @@ Admin commands can be restricted to a specific KOOK channel, and admin operation
 
 ### Admin commands
 
+- `/settings [page]`
 - `/gen_card <amount> <count>`
 - `/set_pay_amounts <amount1> <amount2> ...`
+- `/set_locale <locale>`
+- `/set_admin_channel <channel_id|current|off>`
+- `/set_log_channel <channel_id|current|off>`
+- `/set_custom_amount_range <min> <max>`
+- `/set_card_format "<template>"`
+- `/set_card_length <length>`
+- `/set_card_alphabet "<alphabet>"`
 - `/export_cards [all]`
 - `/export_keys <product_id|all>`
 - `/del_card <card_code>`
@@ -134,6 +144,7 @@ KOOK_LOCALE_DIR=locales
 KOOK_ADMIN_COMMAND_CHANNEL_ID=4760888878941680
 KOOK_LOG_CHANNEL_ID=4760888878941680
 KOOK_SUPER_ADMIN_IDS=2744428583
+KOOK_RUNTIME_CONFIG_ADMIN_IDS=2744428583
 
 KOOK_DB_BACKEND=sqlite
 KOOK_SQLITE_PATH=data/kook-bot.db
@@ -149,6 +160,9 @@ KOOK_LOG_EVENTS=false
 KOOK_LOG_COMMANDS=false
 KOOK_LOG_COMMAND_STATUS=false
 KOOK_LOG_IMPORTS=false
+KOOK_USER_COMMAND_COOLDOWN_ENABLED=true
+KOOK_USER_COMMAND_COOLDOWN_SECONDS=3
+KOOK_USER_COMMAND_COOLDOWN_OVERRIDES=help:2,pay_amounts:2,products:2,buy:5,recharge:5,pay:8
 KOOK_IMPORT_WEB_ENABLED=false
 KOOK_IMPORT_WEB_HOST=127.0.0.1
 KOOK_IMPORT_WEB_PORT=18080
@@ -186,7 +200,7 @@ KOOK_RECHARGE_CARD_FORMAT=CARD{random}
 
 ## Built-in payment
 
-This project supports MXLG built-in payment for balance recharge.
+This project supports built-in payment for balance recharge.
 
 Users can:
 
@@ -197,6 +211,16 @@ Users can:
 Admins can:
 
 - configure allowed recharge amounts with `/set_pay_amounts`
+- open `/settings` to change runtime settings with cards and buttons
+- change locale, channels, custom amount range, log switches, and recharge card format without restarting
+
+Runtime settings command visibility and access can be restricted with:
+
+```env
+KOOK_RUNTIME_CONFIG_ADMIN_IDS=2744428583
+```
+
+Only ids listed there can see and use `/settings` and the related runtime setting commands.
 
 Required environment variables:
 
@@ -260,6 +284,22 @@ Default behavior:
 
 - commands requiring `admin` or `super_admin` can only be used in `KOOK_ADMIN_COMMAND_CHANNEL_ID`
 - admin command success, failure, and rejected channel attempts are pushed to `KOOK_LOG_CHANNEL_ID`
+
+## User cooldown
+
+The bot includes user-side command cooldowns to reduce spam and repeated button clicks.
+
+- applies to normal users by default
+- covers commands triggered by text and card buttons
+- `admin` and `super_admin` bypass the cooldown by default
+
+Environment variables:
+
+```env
+KOOK_USER_COMMAND_COOLDOWN_ENABLED=true
+KOOK_USER_COMMAND_COOLDOWN_SECONDS=3
+KOOK_USER_COMMAND_COOLDOWN_OVERRIDES=help:2,pay_amounts:2,products:2,buy:5,recharge:5,pay:8
+```
 
 ## Import modes
 

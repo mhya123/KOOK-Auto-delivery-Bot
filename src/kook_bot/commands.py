@@ -7,6 +7,7 @@ from .context import CommandContext
 from .permissions import Role, role_allows
 
 CommandHandler = Callable[[CommandContext], Awaitable[None]]
+CommandAccessCheck = Callable[[object, str], bool]
 
 
 @dataclass(slots=True)
@@ -19,6 +20,8 @@ class CommandSpec:
     usage: str = ""
     required_role: str = Role.USER
     aliases: tuple[str, ...] = field(default_factory=tuple)
+    hidden: bool = False
+    access_check: CommandAccessCheck | None = None
 
 
 class CommandRegistry:
@@ -38,6 +41,8 @@ class CommandRegistry:
         usage: str = "",
         required_role: str = Role.USER,
         aliases: tuple[str, ...] = (),
+        hidden: bool = False,
+        access_check: CommandAccessCheck | None = None,
     ) -> Callable[[CommandHandler], CommandHandler]:
         normalized_name = name.strip().lower()
         normalized_aliases = tuple(alias.strip().lower() for alias in aliases if alias.strip())
@@ -52,6 +57,8 @@ class CommandRegistry:
                 usage=usage or normalized_name,
                 required_role=required_role,
                 aliases=normalized_aliases,
+                hidden=hidden,
+                access_check=access_check,
             )
             self._commands[normalized_name] = spec
             for alias in normalized_aliases:
@@ -71,5 +78,11 @@ class CommandRegistry:
     def all_commands(self) -> tuple[CommandSpec, ...]:
         return tuple(sorted(self._commands.values(), key=lambda spec: spec.name))
 
-    def visible_commands(self, role: str) -> tuple[CommandSpec, ...]:
-        return tuple(spec for spec in self.all_commands() if role_allows(role, spec.required_role))
+    def visible_commands(self, role: str, *, bot: object | None = None, user_id: str = "") -> tuple[CommandSpec, ...]:
+        return tuple(
+            spec
+            for spec in self.all_commands()
+            if not spec.hidden
+            and role_allows(role, spec.required_role)
+            and (spec.access_check is None or (bot is not None and user_id and spec.access_check(bot, user_id)))
+        )

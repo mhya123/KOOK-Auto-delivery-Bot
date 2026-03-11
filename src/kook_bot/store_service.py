@@ -378,26 +378,32 @@ class StoreService:
     def add_key(self, actor_user_id: str, product_id: str, price: int, key_content: str) -> dict[str, int | str]:
         if price <= 0:
             raise StoreError("error.price_positive")
+        normalized_key = key_content.strip()
+        if not normalized_key:
+            raise StoreError("error.no_valid_keys")
 
         now = int(time.time())
         with self.database.transaction() as session:
             product = self._find_product(session, product_id)
             if product is None:
                 raise NotFoundError("error.product_not_found")
+            existing_keys = self._get_existing_product_keys(session, int(product["id"]), [normalized_key])
+            if existing_keys:
+                raise StoreError("error.product_key_exists")
             stock_before = self._count_available_product_keys(session, int(product["id"]))
             session.execute(
                 """
                 INSERT INTO product_keys (product_id, key_content, price, created_by, created_at)
                 VALUES (%s, %s, %s, %s, %s)
                 """,
-                (int(product["id"]), key_content, price, actor_user_id, now),
+                (int(product["id"]), normalized_key, price, actor_user_id, now),
             )
             session.execute(
                 "UPDATE products SET updated_at = %s WHERE id = %s",
                 (now, int(product["id"])),
             )
             key_id = session.lastrowid
-            restock_user_ids = self._pop_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
+            restock_user_ids = self._list_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
         return {
             "key_id": key_id,
             "product_id": int(product["id"]),
@@ -419,6 +425,14 @@ class StoreService:
         normalized_keys = [item.strip() for item in key_contents if item.strip()]
         if not normalized_keys:
             raise StoreError("error.no_valid_keys")
+        unique_keys: list[str] = []
+        seen_keys: set[str] = set()
+        for key_content in normalized_keys:
+            if key_content in seen_keys:
+                continue
+            seen_keys.add(key_content)
+            unique_keys.append(key_content)
+        duplicates_in_batch = len(normalized_keys) - len(unique_keys)
 
         now = int(time.time())
         with self.database.transaction() as session:
@@ -426,10 +440,14 @@ class StoreService:
             if product is None:
                 raise NotFoundError("error.product_not_found")
             stock_before = self._count_available_product_keys(session, int(product["id"]))
+            existing_keys = self._get_existing_product_keys(session, int(product["id"]), unique_keys)
+            new_keys = [key_content for key_content in unique_keys if key_content not in existing_keys]
+            if not new_keys:
+                raise StoreError("error.product_keys_all_duplicate")
 
             rows = [
                 (int(product["id"]), key_content, price, actor_user_id, now)
-                for key_content in normalized_keys
+                for key_content in new_keys
             ]
             session.executemany(
                 """
@@ -442,12 +460,13 @@ class StoreService:
                 "UPDATE products SET updated_at = %s WHERE id = %s",
                 (now, int(product["id"])),
             )
-            restock_user_ids = self._pop_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
+            restock_user_ids = self._list_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
             return {
                 "product_id": int(product["id"]),
                 "product_name": str(product["name"]),
-                "count": len(normalized_keys),
+                "count": len(new_keys),
                 "price": price,
+                "skipped_duplicates": duplicates_in_batch + len(existing_keys),
                 "restock_user_ids": restock_user_ids,
             }
 
@@ -479,8 +498,9 @@ class StoreService:
             product = self._find_product(session, product_id)
             if product is None:
                 raise NotFoundError("error.product_not_found")
+            stock_before = self._count_available_product_keys(session, int(product["id"]))
 
-            existing_keys = self._get_existing_product_keys(session, unique_keys)
+            existing_keys = self._get_existing_product_keys(session, int(product["id"]), unique_keys)
             new_keys = [key_content for key_content in unique_keys if key_content not in existing_keys]
 
             if new_keys:
@@ -499,7 +519,7 @@ class StoreService:
                     "UPDATE products SET updated_at = %s WHERE id = %s",
                     (now, int(product["id"])),
                 )
-                restock_user_ids = self._pop_product_subscriptions(session, int(product["id"]))
+                restock_user_ids = self._list_product_subscriptions(session, int(product["id"])) if stock_before == 0 else []
             else:
                 restock_user_ids = []
 
@@ -604,6 +624,85 @@ class StoreService:
                 }
             )
         return grouped
+
+    def get_product_key_stats(self, product_id: str) -> dict[str, int | str]:
+        with self.database.transaction() as session:
+            product = self._find_product(session, product_id)
+            if product is None:
+                raise NotFoundError("error.product_not_found")
+
+            row = session.fetchone(
+                """
+                SELECT
+                    COUNT(*) AS total_count,
+                    COALESCE(SUM(CASE WHEN is_sold = 1 THEN 1 ELSE 0 END), 0) AS sold_count,
+                    COALESCE(SUM(CASE WHEN is_sold = 0 AND COALESCE(is_void, 0) = 0 THEN 1 ELSE 0 END), 0) AS available_count,
+                    COALESCE(SUM(CASE WHEN COALESCE(is_void, 0) = 1 THEN 1 ELSE 0 END), 0) AS void_count
+                FROM product_keys
+                WHERE product_id = %s
+                """,
+                (int(product["id"]),),
+            )
+        return {
+            "product_id": int(product["id"]),
+            "product_name": str(product["name"]),
+            "total_count": int((row or {}).get("total_count", 0) or 0),
+            "sold_count": int((row or {}).get("sold_count", 0) or 0),
+            "available_count": int((row or {}).get("available_count", 0) or 0),
+            "void_count": int((row or {}).get("void_count", 0) or 0),
+        }
+
+    def delete_all_product_keys(self, actor_user_id: str, product_id: str) -> dict[str, int | str]:
+        now = int(time.time())
+        with self.database.transaction() as session:
+            product = self._find_product(session, product_id)
+            if product is None:
+                raise NotFoundError("error.product_not_found")
+
+            row = session.fetchone(
+                """
+                SELECT
+                    COUNT(*) AS total_count,
+                    COALESCE(SUM(CASE WHEN is_sold = 1 THEN 1 ELSE 0 END), 0) AS sold_count,
+                    COALESCE(SUM(CASE WHEN is_sold = 0 AND COALESCE(is_void, 0) = 0 THEN 1 ELSE 0 END), 0) AS available_count,
+                    COALESCE(SUM(CASE WHEN COALESCE(is_void, 0) = 1 THEN 1 ELSE 0 END), 0) AS void_count
+                FROM product_keys
+                WHERE product_id = %s
+                """,
+                (int(product["id"]),),
+            )
+            total_count = int((row or {}).get("total_count", 0) or 0)
+            if total_count <= 0:
+                raise StoreError("error.product_keys_empty")
+
+            session.execute("DELETE FROM product_keys WHERE product_id = %s", (int(product["id"]),))
+            session.execute(
+                "UPDATE products SET updated_at = %s WHERE id = %s",
+                (now, int(product["id"])),
+            )
+
+        return {
+            "actor_user_id": actor_user_id,
+            "product_id": int(product["id"]),
+            "product_name": str(product["name"]),
+            "deleted_count": total_count,
+            "sold_count": int((row or {}).get("sold_count", 0) or 0),
+            "available_count": int((row or {}).get("available_count", 0) or 0),
+            "void_count": int((row or {}).get("void_count", 0) or 0),
+        }
+
+    def clear_product_subscriptions(self, product_id: int, user_ids: list[str]) -> int:
+        normalized_user_ids = [str(user_id).strip() for user_id in user_ids if str(user_id).strip()]
+        if not normalized_user_ids:
+            return 0
+
+        with self.database.transaction() as session:
+            placeholders = ", ".join(["%s"] * len(normalized_user_ids))
+            session.execute(
+                f"DELETE FROM product_subscriptions WHERE product_id = %s AND user_id IN ({placeholders})",
+                (int(product_id), *normalized_user_ids),
+            )
+        return len(normalized_user_ids)
 
     def subscribe_product(self, user_id: str, product_id: str) -> dict[str, int | str]:
         now = int(time.time())
@@ -860,7 +959,7 @@ class StoreService:
             sql += " FOR UPDATE"
         return session.fetchone(sql, (user_id, key_content))
 
-    def _pop_product_subscriptions(self, session, product_id: int) -> list[str]:
+    def _list_product_subscriptions(self, session, product_id: int) -> list[str]:
         rows = session.fetchall(
             """
             SELECT user_id
@@ -870,23 +969,17 @@ class StoreService:
             """,
             (product_id,),
         )
-        if not rows:
-            return []
-        session.execute(
-            "DELETE FROM product_subscriptions WHERE product_id = %s",
-            (product_id,),
-        )
         return [str(row["user_id"]) for row in rows]
 
-    def _get_existing_product_keys(self, session, key_contents: list[str]) -> set[str]:
+    def _get_existing_product_keys(self, session, product_id: int, key_contents: list[str]) -> set[str]:
         existing_keys: set[str] = set()
         chunk_size = 500
         for start in range(0, len(key_contents), chunk_size):
             chunk = key_contents[start : start + chunk_size]
             placeholders = ", ".join(["%s"] * len(chunk))
             rows = session.fetchall(
-                f"SELECT key_content FROM product_keys WHERE key_content IN ({placeholders})",
-                tuple(chunk),
+                f"SELECT key_content FROM product_keys WHERE product_id = %s AND key_content IN ({placeholders})",
+                (product_id, *chunk),
             )
             existing_keys.update(str(row["key_content"]) for row in rows)
         return existing_keys

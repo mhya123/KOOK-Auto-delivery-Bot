@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from aiohttp import web
+from aiohttp.web_exceptions import HTTPRequestEntityTooLarge
 
 from .cards import build_status_cards
 from .context import MessageEvent
@@ -42,7 +43,7 @@ class BotImportMixin:
         if self._import_web_runner is not None:
             return
 
-        app = web.Application()
+        app = web.Application(client_max_size=self.settings.import_web_max_body_mb * 1024 * 1024)
         routes: list[web.RouteDef] = []
         if self.settings.import_web_enabled:
             routes.extend(
@@ -228,13 +229,15 @@ class BotImportMixin:
         return (
             f"<!doctype html><html><head><meta charset='utf-8'><title>{html.escape(self.t('payment.submit.page_title'))}</title>"
             "<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#1f2937;}"
-            ".box{padding:20px;background:#f3f4f6;border-radius:10px;}</style></head>"
+            ".box{padding:20px;background:#f3f4f6;border-radius:10px;}"
+            "button{display:inline-block;margin-top:16px;padding:12px 18px;background:#0f766e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;}"
+            "button:hover{background:#115e59;}</style></head>"
             f"<body onload='document.getElementById(\"pay-form\").submit()'>"
             f"<h1>{html.escape(self.t('payment.submit.page_title'))}</h1>"
             f"<div class='box'><p>{html.escape(self.t('payment.submit.redirecting'))}</p></div>"
             f"<form id='pay-form' method='post' action='{html.escape(gateway_url)}'>"
             f"{''.join(inputs)}"
-            f"<noscript><button type='submit'>{html.escape(self.t('payment.submit.manual_button'))}</button></noscript>"
+            f"<button type='submit'>{html.escape(self.t('payment.submit.manual_button'))}</button>"
             "</form></body></html>"
         )
 
@@ -313,7 +316,24 @@ class BotImportMixin:
                 content_type="text/html",
             )
 
-        post_data = await request.post()
+        try:
+            post_data = await request.post()
+        except HTTPRequestEntityTooLarge:
+            self._log_import(
+                "import web rejected upload_id=%s reason=body_too_large limit_mb=%s",
+                upload_id,
+                self.settings.import_web_max_body_mb,
+            )
+            return web.Response(
+                text=self._render_import_web_page(
+                    self.t("web.import.body_too_large", max_mb=self.settings.import_web_max_body_mb),
+                    upload_id=session.upload_id,
+                    product_id=session.product_id,
+                    price=session.price,
+                ),
+                content_type="text/html",
+                status=413,
+            )
         password = str(post_data.get("password", "")).strip()
         uploaded_file = post_data.get("file")
         if password != session.password:
@@ -868,9 +888,11 @@ class BotImportMixin:
             ),
             theme="warning",
         )
+        delivered_user_ids: list[str] = []
         for user_id in user_ids:
             try:
                 await self.send_direct_card(cards, target_id=str(user_id))
+                delivered_user_ids.append(str(user_id))
                 self._log_import(
                     "restock notify sent product_id=%s user_id=%s",
                     result.get("product_id", ""),
@@ -878,6 +900,13 @@ class BotImportMixin:
                 )
             except Exception:
                 logger.exception("failed to send restock notification user_id=%s", user_id)
+        if delivered_user_ids:
+            cleared_count = self.store.clear_product_subscriptions(int(result.get("product_id", 0) or 0), delivered_user_ids)
+            self._log_import(
+                "restock notify cleanup product_id=%s cleared_count=%s",
+                result.get("product_id", ""),
+                cleared_count,
+            )
 
     def _pick_import_attachment(self, attachments: tuple[dict[str, str], ...]) -> dict[str, str] | None:
         for attachment in attachments:

@@ -30,12 +30,20 @@ class KookGateway:
         event_callback: Callable[[MessageEvent], Awaitable[None]],
         compress: int = 0,
         log_events: bool = False,
+        ping_interval_seconds: int = 30,
+        ping_jitter_seconds: int = 5,
+        pong_timeout_seconds: int = 12,
+        max_missed_pongs: int = 2,
     ) -> None:
         self._session = session
         self._http = http
         self._event_callback = event_callback
         self._compress = compress
         self._log_events = log_events
+        self._ping_interval_seconds = max(10, int(ping_interval_seconds))
+        self._ping_jitter_seconds = max(0, int(ping_jitter_seconds))
+        self._pong_timeout_seconds = max(3, int(pong_timeout_seconds))
+        self._max_missed_pongs = max(1, int(max_missed_pongs))
         self._session_id: str | None = None
         self._sn = 0
         self._last_pong_at = time.monotonic()
@@ -124,22 +132,49 @@ class KookGateway:
             return
 
     async def _ping_loop(self, ws) -> None:
+        missed_pongs = 0
         while True:
-            await asyncio.sleep(30 + random.randint(-5, 5))
+            await asyncio.sleep(self._ping_interval_seconds + random.randint(-self._ping_jitter_seconds, self._ping_jitter_seconds))
             self._pong_event.clear()
             logger.debug("ping sn=%s", self._sn)
             await ws.send_json({"s": 2, "sn": self._sn})
             sent_at = time.monotonic()
             try:
-                await asyncio.wait_for(self._pong_event.wait(), timeout=6)
+                await asyncio.wait_for(self._pong_event.wait(), timeout=self._pong_timeout_seconds)
             except asyncio.TimeoutError as exc:
+                missed_pongs += 1
+                if missed_pongs < self._max_missed_pongs:
+                    logger.warning(
+                        "gateway heartbeat timeout ignored missed=%s/%s sn=%s timeout=%ss",
+                        missed_pongs,
+                        self._max_missed_pongs,
+                        self._sn,
+                        self._pong_timeout_seconds,
+                    )
+                    continue
                 await ws.close()
-                raise TimeoutError(f"KOOK gateway heartbeat timed out after ping sn={self._sn}.") from exc
+                raise TimeoutError(
+                    f"KOOK gateway heartbeat timed out after ping sn={self._sn} "
+                    f"(missed {missed_pongs}/{self._max_missed_pongs}, timeout={self._pong_timeout_seconds}s)."
+                ) from exc
 
             if self._last_pong_at < sent_at:
+                missed_pongs += 1
+                if missed_pongs < self._max_missed_pongs:
+                    logger.warning(
+                        "gateway heartbeat stale pong ignored missed=%s/%s sn=%s",
+                        missed_pongs,
+                        self._max_missed_pongs,
+                        self._sn,
+                    )
+                    continue
                 await ws.close()
-                raise TimeoutError(f"KOOK gateway heartbeat timestamp stale after ping sn={self._sn}.")
+                raise TimeoutError(
+                    f"KOOK gateway heartbeat timestamp stale after ping sn={self._sn} "
+                    f"(missed {missed_pongs}/{self._max_missed_pongs})."
+                )
 
+            missed_pongs = 0
             logger.debug("pong sn=%s", self._sn)
 
     def _decode_message(self, message) -> dict[str, Any]:

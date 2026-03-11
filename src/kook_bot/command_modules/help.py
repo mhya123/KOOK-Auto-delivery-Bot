@@ -27,7 +27,7 @@ def register(bot: KookBot) -> None:
         aliases=("commands",),
     )
     async def help_command(ctx: CommandContext) -> None:
-        visible_commands = ctx.bot.commands.visible_commands(ctx.author_role)
+        visible_commands = ctx.bot.commands.visible_commands(ctx.author_role, bot=ctx.bot, user_id=ctx.author_id)
         page = 1
         if ctx.args:
             try:

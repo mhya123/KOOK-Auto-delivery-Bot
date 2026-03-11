@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import secrets
+import time
 from datetime import datetime
 
 from ..bot import KookBot
-from ..cards import build_status_cards
+from ..cards import build_command_button, build_status_cards
 from ..context import CommandContext
 from ..export_utils import build_product_keys_workbook, build_recharge_cards_workbook
 from ..logging_utils import get_logger
@@ -11,6 +13,7 @@ from ..permissions import Role
 from ..store_service import NotFoundError, StoreError
 
 logger = get_logger("kook_bot.store_admin")
+DELETE_ALL_KEYS_CONFIRM_TTL_SECONDS = 60
 
 
 def register(bot: KookBot) -> None:
@@ -227,6 +230,7 @@ def register(bot: KookBot) -> None:
             product_id=result["product_id"],
             count=result["count"],
             price=result["price"],
+            skipped_duplicates=result.get("skipped_duplicates", 0),
         )
 
     @bot.command(
@@ -395,6 +399,142 @@ def register(bot: KookBot) -> None:
             )
         )
 
+    @bot.command(
+        "del_keys",
+        description="Delete all keys for a product after confirmation.",
+        usage="/del_keys <product_id>",
+        required_role=Role.ADMIN,
+    )
+    async def delete_all_keys_command(ctx: CommandContext) -> None:
+        if not ctx.args:
+            await ctx.reply_warning_t("store.del_keys.usage")
+            return
+
+        product_id = ctx.args[0].strip()
+        try:
+            stats = ctx.bot.store.get_product_key_stats(product_id)
+        except (StoreError, NotFoundError) as exc:
+            await ctx.reply_error(exc)
+            return
+
+        token = secrets.token_hex(3).upper()
+        confirmations = _get_delete_key_confirmations(ctx.bot)
+        confirmations[ctx.author_id] = {
+            "product_id": str(stats["product_id"]),
+            "token": token,
+            "expires_at": int(time.time()) + DELETE_ALL_KEYS_CONFIRM_TTL_SECONDS,
+        }
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.del_keys.confirm_title"),
+                body=ctx.t(
+                    "store.del_keys.confirm_body",
+                    product_id=stats["product_id"],
+                    product_name=stats["product_name"],
+                    seconds=DELETE_ALL_KEYS_CONFIRM_TTL_SECONDS,
+                ),
+                facts=[
+                    (ctx.t("store.del_keys.field.total"), str(stats["total_count"])),
+                    (ctx.t("store.del_keys.field.available"), str(stats["available_count"])),
+                    (ctx.t("store.del_keys.field.sold"), str(stats["sold_count"])),
+                    (ctx.t("store.del_keys.field.void"), str(stats["void_count"])),
+                    (ctx.t("store.del_keys.field.token"), token),
+                ],
+                theme="warning",
+                actions=[
+                    build_command_button(
+                        ctx.t("store.del_keys.confirm_button"),
+                        f"{ctx.bot.settings.command_prefix}confirm_del_keys {stats['product_id']} {token}",
+                        theme="danger",
+                    ),
+                    build_command_button(
+                        ctx.t("store.del_keys.cancel_button"),
+                        f"{ctx.bot.settings.command_prefix}cancel_del_keys {stats['product_id']}",
+                        theme="secondary",
+                    ),
+                ],
+            )
+        )
+
+    @bot.command(
+        "confirm_del_keys",
+        description="Confirm deleting all keys for a product.",
+        usage="/confirm_del_keys <product_id> <token>",
+        required_role=Role.ADMIN,
+    )
+    async def confirm_delete_all_keys_command(ctx: CommandContext) -> None:
+        if len(ctx.args) < 2:
+            await ctx.reply_warning_t("store.del_keys.confirm_usage")
+            return
+
+        product_id = ctx.args[0].strip()
+        token = ctx.args[1].strip().upper()
+        confirmations = _get_delete_key_confirmations(ctx.bot)
+        pending = confirmations.get(ctx.author_id)
+        if pending is None:
+            await ctx.reply_warning_t("store.del_keys.no_pending")
+            return
+        if int(pending.get("expires_at", 0)) <= int(time.time()):
+            confirmations.pop(ctx.author_id, None)
+            await ctx.reply_warning_t("store.del_keys.expired")
+            return
+        if str(pending.get("product_id")) != product_id or str(pending.get("token")) != token:
+            await ctx.reply_warning_t("store.del_keys.token_invalid")
+            return
+
+        try:
+            result = ctx.bot.store.delete_all_product_keys(ctx.author_id, product_id)
+        except (StoreError, NotFoundError) as exc:
+            await ctx.reply_error(exc)
+            return
+        finally:
+            confirmations.pop(ctx.author_id, None)
+
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.del_keys.success_title"),
+                body=ctx.t(
+                    "store.del_keys.success_body",
+                    product_id=result["product_id"],
+                    product_name=result["product_name"],
+                    count=result["deleted_count"],
+                ),
+                facts=[
+                    (ctx.t("store.del_keys.field.deleted"), str(result["deleted_count"])),
+                    (ctx.t("store.del_keys.field.available"), str(result["available_count"])),
+                    (ctx.t("store.del_keys.field.sold"), str(result["sold_count"])),
+                    (ctx.t("store.del_keys.field.void"), str(result["void_count"])),
+                ],
+                theme="success",
+            )
+        )
+
+    @bot.command(
+        "cancel_del_keys",
+        description="Cancel deleting all keys for a product.",
+        usage="/cancel_del_keys <product_id>",
+        required_role=Role.ADMIN,
+    )
+    async def cancel_delete_all_keys_command(ctx: CommandContext) -> None:
+        confirmations = _get_delete_key_confirmations(ctx.bot)
+        pending = confirmations.get(ctx.author_id)
+        if pending is None:
+            await ctx.reply_warning_t("store.del_keys.no_pending")
+            return
+
+        if ctx.args and str(pending.get("product_id")) != ctx.args[0].strip():
+            await ctx.reply_warning_t("store.del_keys.token_invalid")
+            return
+
+        confirmations.pop(ctx.author_id, None)
+        await ctx.reply_card(
+            build_status_cards(
+                ctx.t("store.del_keys.cancel_title"),
+                body=ctx.t("store.del_keys.cancel_success"),
+                theme="success",
+            )
+        )
+
 
 def _split_key_batch(raw_text: str) -> list[str]:
     normalized = raw_text.replace("\\n", "\n")
@@ -413,3 +553,12 @@ def _build_export_filename(prefix: str) -> str:
 def _normalize_export_name(raw: str) -> str:
     safe = "".join(char if char.isalnum() or char in {"-", "_"} else "_" for char in raw.strip())
     return safe[:32] or "data"
+
+
+def _get_delete_key_confirmations(bot: KookBot) -> dict[str, dict[str, object]]:
+    store = getattr(bot, "_pending_delete_key_confirmations", None)
+    if isinstance(store, dict):
+        return store
+    store = {}
+    setattr(bot, "_pending_delete_key_confirmations", store)
+    return store

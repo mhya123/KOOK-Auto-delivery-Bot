@@ -24,6 +24,7 @@ from .kook_http import KookHttpClient
 from .logging_utils import get_logger
 from .payment_gateway import MxlgPaymentGateway
 from .permissions import PermissionService, Role, role_allows
+from .runtime_settings import RuntimeSettingsManager
 from .store_service import StoreService
 
 logger = get_logger("kook_bot.bot")
@@ -42,10 +43,12 @@ class KookBot(BotTransportMixin, BotImportMixin):
         self.payment_gateway = MxlgPaymentGateway(settings)
         self.command_loader = CommandLoader(self)
         self.translator = Translator(settings.locale, project_root / settings.locale_dir)
+        self.runtime_settings = RuntimeSettingsManager(settings, self.translator)
         self._http: KookHttpClient | None = None
         self._session: ClientSession | None = None
         self._import_web_runner: Any | None = None
         self._pending_import_uploads: dict[str, PendingImportUpload] = {}
+        self._command_cooldowns: dict[tuple[str, str], float] = {}
 
     def command(self, name: str, **kwargs):
         return self.commands.command(name, **kwargs)
@@ -77,21 +80,31 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 event_callback=self._dispatch_message,
                 compress=self.settings.gateway_compress,
                 log_events=self.settings.log_events,
+                ping_interval_seconds=self.settings.gateway_ping_interval_seconds,
+                ping_jitter_seconds=self.settings.gateway_ping_jitter_seconds,
+                pong_timeout_seconds=self.settings.gateway_pong_timeout_seconds,
+                max_missed_pongs=self.settings.gateway_max_missed_pongs,
             )
             logger.info(
                 (
                     "starting prefix=%r api_base_url=%s db_backend=%s super_admin_ids=%s log_level=%s "
+                    "runtime_config_admin_ids=%s "
                     "recharge_card_format=%r recharge_card_random_length=%s "
                     "payment_enabled=%s payment_api_base_url=%s payment_base_url=%s "
-                    "log_http=%s log_events=%s log_commands=%s log_command_status=%s log_imports=%s locale=%s locale_dir=%s "
+                    "log_http=%s log_events=%s log_commands=%s log_command_status=%s log_imports=%s "
+                    "user_command_cooldown_enabled=%s user_command_cooldown_seconds=%s user_command_cooldown_overrides=%s "
+                    "gateway_ping_interval_seconds=%s gateway_ping_jitter_seconds=%s "
+                    "gateway_pong_timeout_seconds=%s gateway_max_missed_pongs=%s "
+                    "locale=%s locale_dir=%s "
                     "admin_command_channel_id=%s log_channel_id=%s import_web_enabled=%s import_web_host=%s "
-                    "import_web_port=%s import_web_base_url=%s import_web_ttl_seconds=%s "
+                    "import_web_port=%s import_web_base_url=%s import_web_ttl_seconds=%s import_web_max_body_mb=%s "
                     "log_to_file=%s log_dir=%s log_file=%s log_max_bytes=%s log_backup_count=%s"
                 ),
                 self.settings.command_prefix,
                 self.settings.api_base_url,
                 self.settings.db_backend,
                 self.settings.super_admin_ids,
+                self.settings.runtime_config_admin_ids,
                 self.settings.log_level.upper(),
                 self.settings.recharge_card_format,
                 self.settings.recharge_card_random_length,
@@ -103,6 +116,13 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 self.settings.log_commands,
                 self.settings.log_command_status,
                 self.settings.log_imports,
+                self.settings.user_command_cooldown_enabled,
+                self.settings.user_command_cooldown_seconds,
+                self.settings.user_command_cooldown_overrides,
+                self.settings.gateway_ping_interval_seconds,
+                self.settings.gateway_ping_jitter_seconds,
+                self.settings.gateway_pong_timeout_seconds,
+                self.settings.gateway_max_missed_pongs,
                 self.settings.locale,
                 self.settings.locale_dir,
                 self.settings.admin_command_channel_id,
@@ -112,6 +132,7 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 self.settings.import_web_port,
                 self.settings.import_web_base_url,
                 self.settings.import_web_ttl_seconds,
+                self.settings.import_web_max_body_mb,
                 self.settings.log_to_file,
                 self.settings.log_dir,
                 self.settings.log_file,
@@ -140,12 +161,49 @@ class KookBot(BotTransportMixin, BotImportMixin):
     def get_role(self, user_id: str) -> str:
         return self.permissions.get_role(user_id)
 
+    def can_manage_runtime_settings(self, user_id: str) -> bool:
+        return str(user_id).strip() in self.settings.runtime_config_admin_ids
+
     def t(self, key: str, **params: object) -> str:
         params.setdefault("prefix", self.settings.command_prefix)
         return self.translator.translate(key, **params)
 
     def _requires_admin_channel(self, spec) -> bool:
         return spec.required_role in {Role.ADMIN, Role.SUPER_ADMIN}
+
+    def _get_command_cooldown_seconds(self, command_name: str) -> int:
+        override = self.settings.user_command_cooldown_overrides.get(command_name.strip().lower())
+        if override is not None:
+            return max(0, int(override))
+        return max(0, int(self.settings.user_command_cooldown_seconds))
+
+    def _consume_command_cooldown(self, user_id: str, command_name: str) -> int:
+        if not self.settings.user_command_cooldown_enabled:
+            return 0
+
+        now = time.monotonic()
+        expired_keys = [
+            key
+            for key, expires_at in self._command_cooldowns.items()
+            if expires_at <= now
+        ]
+        for key in expired_keys:
+            self._command_cooldowns.pop(key, None)
+
+        cooldown_seconds = self._get_command_cooldown_seconds(command_name)
+        if cooldown_seconds <= 0:
+            return 0
+
+        cooldown_key = (str(user_id), command_name.strip().lower())
+        expires_at = self._command_cooldowns.get(cooldown_key, 0.0)
+        if expires_at > now:
+            remaining = int(expires_at - now)
+            if expires_at - now > remaining:
+                remaining += 1
+            return max(1, remaining)
+
+        self._command_cooldowns[cooldown_key] = now + cooldown_seconds
+        return 0
 
     def _is_admin_channel(self, event: MessageEvent) -> bool:
         channel_id = self.settings.admin_command_channel_id.strip()
@@ -311,6 +369,17 @@ class KookBot(BotTransportMixin, BotImportMixin):
             await self.reply_to_event(event, self.t("common.permission_denied"))
             return
 
+        if spec.access_check is not None and not spec.access_check(self, event.author_id):
+            await self._send_command_log(
+                event,
+                command_name,
+                args,
+                status="rejected",
+                detail="access_check_denied",
+            )
+            await self.reply_to_event(event, self.t("common.permission_denied"))
+            return
+
         if self._requires_admin_channel(spec) and not self._is_admin_channel(event):
             await self.reply_to_event(
                 event,
@@ -324,6 +393,26 @@ class KookBot(BotTransportMixin, BotImportMixin):
                 detail="invalid_channel",
             )
             return
+
+        if not role_allows(author_role, Role.ADMIN):
+            cooldown_remaining = self._consume_command_cooldown(event.author_id, command_name)
+            if cooldown_remaining > 0:
+                await self.reply_to_event(
+                    event,
+                    self.t(
+                        "common.command_cooldown",
+                        command=f"{prefix}{command_name}",
+                        seconds=cooldown_remaining,
+                    ),
+                )
+                await self._send_command_log(
+                    event,
+                    command_name,
+                    args,
+                    status="rejected",
+                    detail=f"cooldown:{cooldown_remaining}s",
+                )
+                return
 
         context = CommandContext(
             bot=self,

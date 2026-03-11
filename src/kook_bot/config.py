@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def get_project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def get_dotenv_path() -> Path:
+    return get_project_root() / ".env"
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -28,9 +36,29 @@ def _env_csv(name: str, default: str = "") -> tuple[str, ...]:
     return tuple(item for item in values if item)
 
 
+def _env_int_map(name: str, default: dict[str, int] | None = None) -> dict[str, int]:
+    raw = os.getenv(name, "").strip()
+    mapping = dict(default or {})
+    if not raw:
+        return mapping
+
+    for item in raw.split(","):
+        pair = item.strip()
+        if not pair or ":" not in pair:
+            continue
+        key, value = pair.split(":", 1)
+        normalized_key = key.strip().lower()
+        if not normalized_key:
+            continue
+        try:
+            mapping[normalized_key] = max(0, int(value.strip()))
+        except ValueError:
+            continue
+    return mapping
+
+
 def _load_dotenv() -> None:
-    project_root = Path(__file__).resolve().parents[2]
-    dotenv_path = project_root / ".env"
+    dotenv_path = get_dotenv_path()
     if not dotenv_path.exists():
         return
 
@@ -50,6 +78,35 @@ def _load_dotenv() -> None:
         os.environ[key] = value
 
 
+def set_dotenv_value(key: str, value: str) -> None:
+    dotenv_path = get_dotenv_path()
+    if dotenv_path.exists():
+        lines = dotenv_path.read_text(encoding="utf-8").splitlines()
+    else:
+        lines = []
+
+    replaced = False
+    updated_lines: list[str] = []
+    for raw_line in lines:
+        stripped = raw_line.lstrip()
+        if stripped.startswith(f"{key}="):
+            indent = raw_line[: len(raw_line) - len(stripped)]
+            updated_lines.append(f"{indent}{key}={value}")
+            replaced = True
+            continue
+        updated_lines.append(raw_line)
+
+    if not replaced:
+        if updated_lines and updated_lines[-1].strip():
+            updated_lines.append("")
+        updated_lines.append(f"{key}={value}")
+
+    payload = "\n".join(updated_lines)
+    if payload:
+        payload += "\n"
+    dotenv_path.write_text(payload, encoding="utf-8")
+
+
 @dataclass(slots=True)
 class Settings:
     token: str
@@ -58,7 +115,7 @@ class Settings:
     recharge_card_random_length: int = 16
     recharge_card_alphabet: str = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     payment_enabled: bool = False
-    payment_api_base_url: str = "https://pay.mxlg.cn"
+    payment_api_base_url: str = "https://pay.XXXX.cn"
     payment_pid: str = ""
     payment_key: str = ""
     payment_sitename: str = "KOOK Auto-delivery Bot"
@@ -74,7 +131,12 @@ class Settings:
     log_channel_id: str = "4760888878941680"
     api_base_url: str = "https://www.kookapp.cn/api/v3"
     gateway_compress: int = 0
+    gateway_ping_interval_seconds: int = 30
+    gateway_ping_jitter_seconds: int = 5
+    gateway_pong_timeout_seconds: int = 12
+    gateway_max_missed_pongs: int = 2
     super_admin_ids: tuple[str, ...] = ("2744428583",)
+    runtime_config_admin_ids: tuple[str, ...] = ("2744428583",)
     db_backend: str = "sqlite"
     sqlite_path: str = "data/kook-bot.db"
     mysql_host: str = "127.0.0.1"
@@ -88,11 +150,24 @@ class Settings:
     log_commands: bool = False
     log_command_status: bool = False
     log_imports: bool = False
+    user_command_cooldown_enabled: bool = True
+    user_command_cooldown_seconds: int = 3
+    user_command_cooldown_overrides: dict[str, int] = field(
+        default_factory=lambda: {
+            "help": 2,
+            "pay_amounts": 2,
+            "products": 2,
+            "buy": 5,
+            "recharge": 5,
+            "pay": 8,
+        }
+    )
     import_web_enabled: bool = False
     import_web_host: str = "127.0.0.1"
     import_web_port: int = 18080
     import_web_base_url: str = "http://127.0.0.1:18080"
     import_web_ttl_seconds: int = 600
+    import_web_max_body_mb: int = 10
     log_to_file: bool = True
     log_dir: str = "logs"
     log_file: str = "kook-bot.log"
@@ -110,6 +185,8 @@ class Settings:
 
         prefix = os.getenv("KOOK_COMMAND_PREFIX", "/").strip() or "/"
         log_level = os.getenv("KOOK_LOG_LEVEL", "INFO").strip() or "INFO"
+        super_admin_ids = _env_csv("KOOK_SUPER_ADMIN_IDS", "2744428583")
+        runtime_config_admin_ids = _env_csv("KOOK_RUNTIME_CONFIG_ADMIN_IDS", ",".join(super_admin_ids))
         return cls(
             token=token,
             command_prefix=prefix,
@@ -134,7 +211,12 @@ class Settings:
             locale_dir=os.getenv("KOOK_LOCALE_DIR", "locales").strip() or "locales",
             admin_command_channel_id=os.getenv("KOOK_ADMIN_COMMAND_CHANNEL_ID", "4760888878941680").strip(),
             log_channel_id=os.getenv("KOOK_LOG_CHANNEL_ID", "4760888878941680").strip(),
-            super_admin_ids=_env_csv("KOOK_SUPER_ADMIN_IDS", "2744428583"),
+            gateway_ping_interval_seconds=max(10, _env_int("KOOK_GATEWAY_PING_INTERVAL_SECONDS", 30)),
+            gateway_ping_jitter_seconds=max(0, _env_int("KOOK_GATEWAY_PING_JITTER_SECONDS", 5)),
+            gateway_pong_timeout_seconds=max(3, _env_int("KOOK_GATEWAY_PONG_TIMEOUT_SECONDS", 12)),
+            gateway_max_missed_pongs=max(1, _env_int("KOOK_GATEWAY_MAX_MISSED_PONGS", 2)),
+            super_admin_ids=super_admin_ids,
+            runtime_config_admin_ids=runtime_config_admin_ids or super_admin_ids,
             db_backend=(os.getenv("KOOK_DB_BACKEND", "sqlite").strip() or "sqlite").lower(),
             sqlite_path=os.getenv("KOOK_SQLITE_PATH", "data/kook-bot.db").strip() or "data/kook-bot.db",
             mysql_host=os.getenv("KOOK_MYSQL_HOST", "127.0.0.1").strip() or "127.0.0.1",
@@ -148,12 +230,26 @@ class Settings:
             log_commands=_env_bool("KOOK_LOG_COMMANDS"),
             log_command_status=_env_bool("KOOK_LOG_COMMAND_STATUS"),
             log_imports=_env_bool("KOOK_LOG_IMPORTS"),
+            user_command_cooldown_enabled=_env_bool("KOOK_USER_COMMAND_COOLDOWN_ENABLED", default=True),
+            user_command_cooldown_seconds=max(0, _env_int("KOOK_USER_COMMAND_COOLDOWN_SECONDS", 3)),
+            user_command_cooldown_overrides=_env_int_map(
+                "KOOK_USER_COMMAND_COOLDOWN_OVERRIDES",
+                {
+                    "help": 2,
+                    "pay_amounts": 2,
+                    "products": 2,
+                    "buy": 5,
+                    "recharge": 5,
+                    "pay": 8,
+                },
+            ),
             import_web_enabled=_env_bool("KOOK_IMPORT_WEB_ENABLED"),
             import_web_host=os.getenv("KOOK_IMPORT_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1",
             import_web_port=_env_int("KOOK_IMPORT_WEB_PORT", 18080),
             import_web_base_url=os.getenv("KOOK_IMPORT_WEB_BASE_URL", "http://127.0.0.1:18080").strip()
             or "http://127.0.0.1:18080",
             import_web_ttl_seconds=max(30, _env_int("KOOK_IMPORT_WEB_TTL_SECONDS", 600)),
+            import_web_max_body_mb=max(1, _env_int("KOOK_IMPORT_WEB_MAX_BODY_MB", 10)),
             log_to_file=_env_bool("KOOK_LOG_TO_FILE", default=True),
             log_dir=os.getenv("KOOK_LOG_DIR", "logs").strip() or "logs",
             log_file=os.getenv("KOOK_LOG_FILE", "kook-bot.log").strip() or "kook-bot.log",

@@ -54,8 +54,16 @@
 
 ### 管理员命令
 
+- `/settings [page]`
 - `/gen_card <amount> <count>`
 - `/set_pay_amounts <amount1> <amount2> ...`
+- `/set_locale <locale>`
+- `/set_admin_channel <channel_id|current|off>`
+- `/set_log_channel <channel_id|current|off>`
+- `/set_custom_amount_range <min> <max>`
+- `/set_card_format "<template>"`
+- `/set_card_length <length>`
+- `/set_card_alphabet "<alphabet>"`
 - `/export_cards [all]`
 - `/export_keys <product_id|all>`
 - `/del_card <card_code>`
@@ -187,7 +195,7 @@ KOOK_RECHARGE_CARD_FORMAT=CARD{random}
 
 ## 内置支付
 
-项目现在支持接入 MXLG 内置支付，用于用户余额充值。
+项目现在支持接入内置码支付，用于用户余额充值。
 
 用户可以：
 
